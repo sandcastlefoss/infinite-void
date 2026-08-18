@@ -3286,6 +3286,30 @@ function armHintFade(){
   typeStep();
 })();
 
+/* Shared fullscreen + landscape-lock attempt, reused both on Enter and
+   whenever the device gets rotated to landscape later in the game. */
+function attemptFullscreenAndLock(){
+  if(document.fullscreenElement) return;
+  const fsEl = document.documentElement;
+  const reqFs = fsEl.requestFullscreen || fsEl.webkitRequestFullscreen || fsEl.mozRequestFullScreen || fsEl.msRequestFullscreen;
+  function lockLandscape(){
+    try{
+      if(screen.orientation && screen.orientation.lock){
+        screen.orientation.lock('landscape').catch(()=>{});
+      }
+    }catch(e){}
+  }
+  if(reqFs){
+    try{
+      const p = reqFs.call(fsEl);
+      if(p && p.then) p.then(lockLandscape).catch(()=>{});
+      else lockLandscape();
+    }catch(e){}
+  } else {
+    lockLandscape();
+  }
+}
+
 (function initIntroScreen(){
   const introScreen = document.getElementById('intro-screen');
   const enterBtn = document.getElementById('enter-btn');
@@ -3297,27 +3321,8 @@ function armHintFade(){
     const nameInput = document.getElementById('name-input');
     if(nameInput && nameInput.value.trim()) MP.setName(nameInput.value.trim());
     // auto fullscreen + auto-rotate to landscape — this runs inside a user-gesture
-    // handler (click/touchstart) so browsers allow it. Orientation lock only works
-    // while fullscreen and is only supported on some mobile browsers (mainly Chrome/
-    // Android); it silently no-ops elsewhere (e.g. iOS Safari), which is fine.
-    const fsEl = document.documentElement;
-    const reqFs = fsEl.requestFullscreen || fsEl.webkitRequestFullscreen || fsEl.mozRequestFullScreen || fsEl.msRequestFullscreen;
-    function lockLandscape(){
-      try{
-        if(screen.orientation && screen.orientation.lock){
-          screen.orientation.lock('landscape').catch(()=>{});
-        }
-      }catch(e){}
-    }
-    if(reqFs){
-      try{
-        const p = reqFs.call(fsEl);
-        if(p && p.then) p.then(lockLandscape).catch(()=>{});
-        else lockLandscape();
-      }catch(e){}
-    } else {
-      lockLandscape();
-    }
+    // handler (click/touchstart) so browsers allow it.
+    attemptFullscreenAndLock();
     initAudio();
     introScreen.classList.add('glitching');
     setTimeout(()=>{
@@ -3335,13 +3340,37 @@ function armHintFade(){
    (notably iOS Safari, and any browser where the lock call is rejected or
    simply not supported). Only nags once the intro screen is gone, and hides
    itself the instant the device is actually in landscape — whether that
-   happened via the API succeeding or the player turning their phone. */
+   happened via the API succeeding or the player turning their phone.
+
+   It also re-attempts fullscreen the moment the device becomes landscape.
+   Browsers only grant requestFullscreen() inside a real user gesture (a tap
+   or click) — a rotation event by itself is NOT treated as a gesture, so a
+   bare "call it on orientationchange" attempt is silently blocked by most
+   browsers. That's why fullscreen used to only kick in on the Enter tap and
+   never came back after rotating mid-game. To work around that here, we
+   still try immediately (it succeeds on a few browsers/OS combos where the
+   rotation happens inside the same gesture window), and — as the guaranteed
+   fallback — arm a one-time listener so the very next tap anywhere on the
+   screen (which IS a real gesture) finishes the job. */
+let fsGestureArmed = false;
 function checkOrientation(){
   const hint = document.getElementById('rotate-hint');
-  if(!hint) return;
   const introGone = !document.getElementById('intro-screen');
   const isPortrait = window.innerHeight > window.innerWidth;
-  hint.classList.toggle('show', introGone && isPortrait);
+  if(hint) hint.classList.toggle('show', introGone && isPortrait);
+
+  if(introGone && !isPortrait && !document.fullscreenElement){
+    attemptFullscreenAndLock();
+    if(!fsGestureArmed){
+      fsGestureArmed = true;
+      const retry = ()=>{
+        fsGestureArmed = false;
+        attemptFullscreenAndLock();
+      };
+      document.addEventListener('touchend', retry, {once:true, passive:true});
+      document.addEventListener('click', retry, {once:true});
+    }
+  }
 }
 window.addEventListener('resize', checkOrientation);
 window.addEventListener('orientationchange', checkOrientation);

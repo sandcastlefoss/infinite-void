@@ -2422,11 +2422,32 @@ function animate(){
      call is negotiated automatically (signaled through the same
      channel) and the volume is scaled by distance, fading to silence
      past VOICE_RANGE — walkie-talkie style proximity voice.
+   - The connection forms as soon as two players are in range, regardless
+     of mic state on either side, so a muted player can still hear others
+     (recvonly transceiver). Turning mic on just adds your own outgoing
+     audio track to that same connection.
 ===================================================================== */
 const SUPABASE_URL = 'https://spzhifbsmdxppzpfrvca.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_MjHt7ir121YX551IrMHMXA_Pk_Evrxk';
 const VOICE_RANGE   = 260;   // world units — audio fades to 0 beyond this
 const CONNECT_RANGE = 340;   // world units — WebRTC call opens/closes around this (with hysteresis)
+const VOICE_DEBUG   = true;  // console.log every step of the RTC handshake — flip to false once it's working
+function vlog(...args){ if(VOICE_DEBUG) console.log('%c[voice]','color:#5ee7ff', ...args); }
+
+// STUN alone only works when both peers are on networks that allow direct P2P
+// (e.g. same wifi, or open home networks). Mobile data / corporate / campus
+// networks usually sit behind NAT that STUN cannot punch through, and the
+// connection then fails *silently* (connectionState goes to 'failed', no
+// error is ever shown to the user). A TURN server relays the audio in that
+// case. Below is Open Relay's free public TURN server for testing — swap in
+// your own (e.g. Twilio NTS, Cloudflare Calls, or self-hosted coturn) for
+// production, since a free public TURN server has no capacity/uptime guarantee.
+const ICE_SERVERS = [
+  {urls:'stun:stun.l.google.com:19302'},
+  {urls:'turn:openrelay.metered.ca:80', username:'openrelayproject', credential:'openrelayproject'},
+  {urls:'turn:openrelay.metered.ca:443', username:'openrelayproject', credential:'openrelayproject'},
+  {urls:'turn:openrelay.metered.ca:443?transport=tcp', username:'openrelayproject', credential:'openrelayproject'}
+];
 
 const MP = (function(){
   const sb = (window.supabase && window.supabase.createClient)
@@ -2507,16 +2528,26 @@ const MP = (function(){
   }
 
   function makePeerConnection(id){
-    const pc = new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
-    if(localStream) localStream.getTracks().forEach(tr=>pc.addTrack(tr, localStream));
+    const pc = new RTCPeerConnection({iceServers: ICE_SERVERS});
+    if(localStream){
+      localStream.getTracks().forEach(tr=>pc.addTrack(tr, localStream));
+    } else {
+      // No mic of our own (muted / never enabled) — still ask to *receive*
+      // audio, so a muted listener can hear everyone else. Without this,
+      // a peer with mic off never gets an audio track from the other side.
+      pc.addTransceiver('audio', {direction:'recvonly'});
+    }
     pc.onicecandidate = e=>{
       if(e.candidate) safeSend({type:'broadcast', event:'rtc', payload:{to:id, from:myId, kind:'candidate', data:e.candidate}});
     };
+    pc.oniceconnectionstatechange = ()=> vlog('ICE state with', id.slice(0,6), '→', pc.iceConnectionState);
     pc.onconnectionstatechange = ()=>{
+      vlog('connection state with', id.slice(0,6), '→', pc.connectionState);
       if(pc.connectionState==='failed' || pc.connectionState==='disconnected') closePeer(id);
     };
     let gainNode = null;
     pc.ontrack = e=>{
+      vlog('received remote audio track from', id.slice(0,6));
       const ctx = ensureAudioCtx();
       const src = ctx.createMediaStreamSource(e.streams[0]);
       gainNode = ctx.createGain();
@@ -2534,8 +2565,9 @@ const MP = (function(){
   }
 
   async function initiateOffer(id){
-    if(!micOn || peers.has(id) || !channel || channel.state !== 'joined') return;
+    if(peers.has(id) || !channel || channel.state !== 'joined') return;
     try{
+      vlog('sending offer to', id.slice(0,6));
       const rec = makePeerConnection(id);
       const offer = await rec.pc.createOffer();
       await rec.pc.setLocalDescription(offer);
@@ -2550,13 +2582,16 @@ const MP = (function(){
     if(!payload || payload.to !== myId) return;
     const {from, kind, data} = payload;
     if(kind==='offer'){
-      if(!micOn) return;
+      // Answer even with mic off — recvonly transceiver in makePeerConnection
+      // lets a muted player still hear everyone else, walkie-talkie style.
+      vlog('received offer from', from.slice(0,6));
       const rec = peers.get(from) || makePeerConnection(from);
       await rec.pc.setRemoteDescription(new RTCSessionDescription(data));
       const answer = await rec.pc.createAnswer();
       await rec.pc.setLocalDescription(answer);
       safeSend({type:'broadcast', event:'rtc', payload:{to:from, from:myId, kind:'answer', data:answer}});
     } else if(kind==='answer'){
+      vlog('received answer from', from.slice(0,6));
       const rec = peers.get(from);
       if(rec) await rec.pc.setRemoteDescription(new RTCSessionDescription(data));
     } else if(kind==='candidate'){
@@ -2696,10 +2731,8 @@ const MP = (function(){
       }
 
       const dist = sameContext ? localPos.distanceTo(active.group.position) : Infinity;
-      if(micOn){
-        if(dist < CONNECT_RANGE && !peers.has(id) && id > myId) initiateOffer(id);
-        if(dist > CONNECT_RANGE*1.4 && peers.has(id)) closePeer(id);
-      }
+      if(dist < CONNECT_RANGE && !peers.has(id) && id > myId) initiateOffer(id);
+      if(dist > CONNECT_RANGE*1.4 && peers.has(id)) closePeer(id);
       const rec = peers.get(id);
       if(rec && rec.gain) rec.gain.gain.value = dist < VOICE_RANGE ? Math.max(0, 1 - dist/VOICE_RANGE) : 0;
     });

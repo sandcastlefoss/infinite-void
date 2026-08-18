@@ -42,6 +42,12 @@
   #settings-btn{position:absolute;bottom:14px;right:14px;z-index:20;}
   #log-btn{position:absolute;top:12px;right:170px;z-index:20;font-size:14px;}
 
+  /* ---------- Radar / Minimap ---------- */
+  #radar-container{position:absolute;top:12px;right:12px;width:140px;height:140px;background:var(--panel);border:1px solid var(--panel-border);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:4px;z-index:19;}
+  #radar-title{font-size:9px;color:var(--accent);letter-spacing:1.5px;text-transform:uppercase;opacity:.8;}
+  #radar-canvas{width:100%;height:100%;background:radial-gradient(circle at 50% 50%, rgba(94,231,255,.08), rgba(94,231,255,.02));border-radius:6px;border:1px solid rgba(94,231,255,.2);}
+  #voice-status{position:absolute;bottom:90px;right:12px;font-size:10px;color:var(--accent);opacity:.7;max-width:120px;text-align:right;z-index:19;height:16px;}
+
   /* ---------- Space flight controls ---------- */
   #space-controls{position:absolute;inset:0;}
   #drag-zone{position:absolute;inset:0;}
@@ -238,6 +244,12 @@
   <button id="mic-btn" class="icon-btn" style="position:absolute;top:12px;right:216px;z-index:20;font-size:16px;opacity:.5;">🎤</button>
   <button id="log-btn" class="icon-btn">📜</button>
   <div id="log-panel"><div class="hud-title">Discovery Log</div><div id="log-list"></div></div>
+
+  <div id="radar-container">
+    <div id="radar-title">RADAR</div>
+    <canvas id="radar-canvas"></canvas>
+  </div>
+  <div id="voice-status"></div>
 
   <div id="hint">ඇඟිල්ලෙන් drag කර ship එක හරවන්න • throttle එකෙන් වේගය දෙන්න • ග්‍රහලෝකයකට ළං වූ විට LAND බොත්තම එයි</div>
 
@@ -2393,6 +2405,8 @@ function animate(){
     else if(state.mode==='surface') updateSurface(dt,t);
 
     try{ MP.updateLocal(dt); }catch(e){ console.warn('Multiplayer update error:', e); }
+    
+    if(typeof drawRadar === 'function') drawRadar();
 
     renderer.render(activeScene, camera);
   }catch(e){
@@ -2498,6 +2512,9 @@ const MP = (function(){
     pc.onicecandidate = e=>{
       if(e.candidate) safeSend({type:'broadcast', event:'rtc', payload:{to:id, from:myId, kind:'candidate', data:e.candidate}});
     };
+    pc.onconnectionstatechange = ()=>{
+      if(pc.connectionState==='failed' || pc.connectionState==='disconnected') closePeer(id);
+    };
     let gainNode = null;
     pc.ontrack = e=>{
       const ctx = ensureAudioCtx();
@@ -2518,10 +2535,15 @@ const MP = (function(){
 
   async function initiateOffer(id){
     if(!micOn || peers.has(id) || !channel || channel.state !== 'joined') return;
-    const rec = makePeerConnection(id);
-    const offer = await rec.pc.createOffer();
-    await rec.pc.setLocalDescription(offer);
-    safeSend({type:'broadcast', event:'rtc', payload:{to:id, from:myId, kind:'offer', data:offer}});
+    try{
+      const rec = makePeerConnection(id);
+      const offer = await rec.pc.createOffer();
+      await rec.pc.setLocalDescription(offer);
+      safeSend({type:'broadcast', event:'rtc', payload:{to:id, from:myId, kind:'offer', data:offer}});
+    }catch(e){
+      console.warn('Failed to initiate offer to', id, ':', e);
+      closePeer(id);
+    }
   }
 
   async function handleRTC(payload){
@@ -2683,8 +2705,130 @@ const MP = (function(){
     });
   }
 
-  return { updateLocal, toggleMic, setName, get micOn(){return micOn;}, get micRequesting(){return micRequesting;}, get myName(){return myName;} };
+  return { 
+    updateLocal, toggleMic, setName, 
+    get micOn(){return micOn;}, 
+    get micRequesting(){return micRequesting;}, 
+    get myName(){return myName;},
+    get ghosts(){return ghosts;},
+    get peers(){return peers;}
+  };
 })();
+
+/* =====================================================================
+   RADAR SYSTEM
+===================================================================== */
+const radarCanvas = document.getElementById('radar-canvas');
+const voiceStatusEl = document.getElementById('voice-status');
+let radarCtx = null, radarCenterX = 0, radarCenterY = 0, radarWidth = 0, radarHeight = 0;
+
+if(radarCanvas){
+  radarCtx = radarCanvas.getContext('2d');
+  const rect = radarCanvas.getBoundingClientRect();
+  radarWidth = radarCanvas.width = rect.width * window.devicePixelRatio;
+  radarHeight = radarCanvas.height = rect.height * window.devicePixelRatio;
+  radarCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  radarCenterX = rect.width / 2;
+  radarCenterY = rect.height / 2;
+}
+
+function drawRadar(){
+  if(!radarCtx || !MP || !MP.ghosts) return;
+  
+  const w = radarWidth / window.devicePixelRatio;
+  const h = radarHeight / window.devicePixelRatio;
+  const centerX = radarCenterX;
+  const centerY = radarCenterY;
+  const maxDist = 500;
+  
+  // Clear with gradient background
+  const grad = radarCtx.createRadialGradient(centerX, centerY, 0, centerX, centerY, Math.max(w,h)/2);
+  grad.addColorStop(0, 'rgba(94,231,255,0.08)');
+  grad.addColorStop(1, 'rgba(94,231,255,0.02)');
+  radarCtx.fillStyle = grad;
+  radarCtx.fillRect(0, 0, w, h);
+  
+  // Draw concentric circles
+  radarCtx.strokeStyle = 'rgba(94,231,255,0.15)';
+  radarCtx.lineWidth = 0.5;
+  for(let i = 1; i <= 3; i++){
+    const r = (w/2) * (i/3);
+    radarCtx.beginPath();
+    radarCtx.arc(centerX, centerY, r, 0, Math.PI*2);
+    radarCtx.stroke();
+  }
+  
+  // Draw cross at center
+  radarCtx.strokeStyle = 'rgba(94,231,255,0.3)';
+  radarCtx.lineWidth = 1;
+  radarCtx.beginPath();
+  radarCtx.moveTo(centerX - 8, centerY);
+  radarCtx.lineTo(centerX + 8, centerY);
+  radarCtx.moveTo(centerX, centerY - 8);
+  radarCtx.lineTo(centerX, centerY + 8);
+  radarCtx.stroke();
+  
+  // Draw player ship at center
+  radarCtx.fillStyle = '#5ee7ff';
+  radarCtx.beginPath();
+  radarCtx.moveTo(centerX, centerY - 6);
+  radarCtx.lineTo(centerX - 4, centerY + 4);
+  radarCtx.lineTo(centerX + 4, centerY + 4);
+  radarCtx.closePath();
+  radarCtx.fill();
+  radarCtx.strokeStyle = '#5ee7ff';
+  radarCtx.lineWidth = 1;
+  radarCtx.stroke();
+  
+  // Draw other players
+  const myPlanetKey = state.currentPlanet ? state.currentPlanet.key : null;
+  const myPos = state.mode==='surface' ? player.position : ship.position;
+  const myRot = state.mode==='surface' ? player.rotation.y : 0;
+  
+  MP.ghosts.forEach((g, id)=>{
+    const sameContext = (state.mode==='space' && g.mode==='space')
+                      || (state.mode==='surface' && g.mode==='surface' && g.planetKey===myPlanetKey);
+    
+    if(!sameContext) return;
+    
+    const ghostObj = g.mode==='surface' ? g.avatar : g.ship;
+    const ghostPos = ghostObj.group.position;
+    
+    let dx = ghostPos.x - myPos.x;
+    let dy = ghostPos.z - myPos.z;
+    if(state.mode==='surface') dy = ghostPos.z - myPos.z;
+    
+    const cos = Math.cos(myRot);
+    const sin = Math.sin(myRot);
+    const rotX = dx * cos - dy * sin;
+    const rotY = dx * sin + dy * cos;
+    
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if(dist > maxDist) return;
+    
+    const scale = (w/2) / maxDist;
+    const radarX = centerX + rotX * scale;
+    const radarY = centerY + rotY * scale;
+    
+    const color = dist < 100 ? '#ff5e6c' : (dist < 250 ? '#ffb85e' : '#5ee7ff');
+    radarCtx.fillStyle = color;
+    radarCtx.beginPath();
+    radarCtx.arc(radarX, radarY, 3, 0, Math.PI*2);
+    radarCtx.fill();
+    
+    radarCtx.strokeStyle = color;
+    radarCtx.lineWidth = 1;
+    radarCtx.stroke();
+  });
+  
+  // Update voice status
+  if(voiceStatusEl){
+    const peerCount = MP.peers.size;
+    const peerText = peerCount === 0 ? 'No Peers' : `${peerCount} Peer${peerCount>1?'s':''}`;
+    const micText = MP.micOn ? '🎤 ON' : MP.micRequesting ? '🎤 ?' : '';
+    voiceStatusEl.textContent = micText ? `${micText}\n${peerText}` : peerText;
+  }
+}
 
 /* mic button + name input wiring */
 (function initMultiplayerUI(){

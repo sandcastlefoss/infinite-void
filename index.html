@@ -43,10 +43,50 @@
   #log-btn{position:absolute;top:12px;right:170px;z-index:20;font-size:14px;}
 
   /* ---------- Radar / Minimap ---------- */
-  #radar-container{position:absolute;top:12px;right:12px;width:140px;height:140px;background:var(--panel);border:1px solid var(--panel-border);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:4px;z-index:19;}
-  #radar-title{font-size:9px;color:var(--accent);letter-spacing:1.5px;text-transform:uppercase;opacity:.8;}
+  #radar-container{position:absolute;top:12px;right:12px;width:150px;height:168px;background:var(--panel);border:1px solid var(--panel-border);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:4px;z-index:19;}
+  #radar-title{font-size:9px;color:var(--accent);letter-spacing:1.5px;text-transform:uppercase;opacity:.8;display:flex;justify-content:space-between;}
+  #radar-title .hint{opacity:.55;text-transform:none;letter-spacing:0;font-size:8px;}
   #radar-canvas{width:100%;height:100%;background:radial-gradient(circle at 50% 50%, rgba(94,231,255,.08), rgba(94,231,255,.02));border-radius:6px;border:1px solid rgba(94,231,255,.2);}
-  #voice-status{position:absolute;bottom:90px;right:12px;font-size:10px;color:var(--accent);opacity:.7;max-width:120px;text-align:right;z-index:19;height:16px;}
+  #radar-legend{font-size:8px;opacity:.7;display:flex;justify-content:space-between;}
+
+  /* ---------- Location box (top-left) ---------- */
+  #hud-left{display:flex;flex-direction:column;gap:8px;}
+  #location-box #exact-coord-line{font-size:11px;color:var(--accent);letter-spacing:.5px;}
+  #location-box .loc-sub{font-size:9px;opacity:.6;margin-top:1px;}
+
+  /* ---------- Universe map / teleport panel ---------- */
+  #map-panel{position:fixed;inset:0;background:rgba(2,4,10,.94);display:none;z-index:50;padding:20px 16px;overflow-y:auto;}
+  #map-panel.show{display:block;}
+  #map-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+  #map-header h2{color:var(--accent);font-size:16px;letter-spacing:2px;margin:0;}
+  .map-section{background:var(--panel);border:1px solid var(--panel-border);border-radius:10px;padding:12px 14px;margin-bottom:14px;}
+  .map-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);}
+  .map-row:last-child{border-bottom:none;}
+  .map-row .dist{opacity:.55;font-size:10px;}
+  .map-empty{font-size:11px;opacity:.5;padding:4px 0;}
+  #tp-inputs{display:flex;gap:8px;margin-bottom:10px;}
+  #tp-inputs input{flex:1;min-width:0;background:rgba(255,255,255,.06);border:1px solid var(--panel-border);border-radius:8px;padding:11px 4px;color:#dff8ff;font-family:var(--font);font-size:12px;text-align:center;}
+  #tp-inputs input:focus{outline:none;border-color:var(--accent);}
+  #tp-go{width:100%;padding:12px;border-radius:10px;background:var(--accent);color:#03131a;border:none;font-weight:bold;letter-spacing:1px;font-size:12px;}
+  #tp-fill-current{width:100%;padding:9px;border-radius:10px;background:var(--panel);border:1px solid var(--panel-border);color:var(--accent);font-size:10px;letter-spacing:.5px;margin-bottom:8px;}
+  .map-planet-color{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;flex-shrink:0;}
+  #chat-btn{position:absolute;top:12px;right:216px;z-index:20;font-size:15px;}
+  #chat-panel{position:fixed;left:0;right:0;bottom:0;height:0;overflow:hidden;background:var(--panel);border-top:1px solid var(--panel-border);z-index:45;transition:height .25s ease;display:flex;flex-direction:column;backdrop-filter:blur(8px);}
+  #chat-panel.show{height:44vh;}
+  #chat-header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--panel-border);flex-shrink:0;}
+  #chat-header .hud-title{margin:0;}
+  #chat-messages{flex:1;overflow-y:auto;padding:8px 14px;font-size:12px;display:flex;flex-direction:column;gap:6px;}
+  .chat-msg{background:rgba(94,231,255,.08);border-radius:10px;padding:6px 10px;max-width:78%;align-self:flex-start;line-height:1.4;}
+  .chat-msg.me{align-self:flex-end;background:rgba(255,45,107,.14);}
+  .chat-msg .cname{font-size:9px;color:var(--accent);opacity:.75;letter-spacing:.5px;margin-bottom:2px;}
+  .chat-msg.me .cname{color:var(--void-glow,#ff6ea3);}
+  .chat-msg .ctext{word-break:break-word;}
+  .chat-sys{align-self:center;font-size:10px;opacity:.5;padding:2px 0;}
+  #chat-input-row{display:flex;gap:8px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--panel-border);flex-shrink:0;}
+  #chat-input{flex:1;min-width:0;background:rgba(255,255,255,.06);border:1px solid var(--panel-border);border-radius:20px;padding:10px 14px;color:#dff8ff;font-family:var(--font);font-size:13px;}
+  #chat-input:focus{outline:none;border-color:var(--accent);}
+  #chat-send{width:40px;height:40px;flex-shrink:0;border-radius:50%;background:var(--accent);color:#03131a;border:none;font-size:15px;}
+  #chat-bubble-hint{position:absolute;bottom:90px;right:12px;font-size:10px;color:var(--accent);opacity:.7;max-width:120px;text-align:right;z-index:19;}
 
   /* ---------- Space flight controls ---------- */
   #space-controls{position:absolute;inset:0;}
@@ -225,12 +265,19 @@
 <div class="ui">
   <!-- HUD -->
   <div id="hud">
-    <div class="hud-block">
-      <div class="hud-title">Energy</div>
-      <div class="bar-track"><div class="bar-fill" id="fuel-bar" style="width:100%"></div></div>
-      <div style="font-size:9px;opacity:.6;margin-top:2px;">UNLIMITED</div>
-      <div class="hud-title" style="margin-top:8px;">Mode</div>
-      <div id="mode-line">Flight</div>
+    <div id="hud-left">
+      <div class="hud-block" id="location-box">
+        <div class="hud-title">Location</div>
+        <div id="exact-coord-line">X 0 Y 0 Z 0</div>
+        <div class="loc-sub" id="location-sub">Deep Space</div>
+      </div>
+      <div class="hud-block">
+        <div class="hud-title">Energy</div>
+        <div class="bar-track"><div class="bar-fill" id="fuel-bar" style="width:100%"></div></div>
+        <div style="font-size:9px;opacity:.6;margin-top:2px;">UNLIMITED</div>
+        <div class="hud-title" style="margin-top:8px;">Mode</div>
+        <div id="mode-line">Flight</div>
+      </div>
     </div>
     <div class="hud-block" id="planet-name-box">
       <div class="hud-title">Sector</div>
@@ -241,15 +288,62 @@
     </div>
   </div>
 
-  <button id="mic-btn" class="icon-btn" style="position:absolute;top:12px;right:216px;z-index:20;font-size:16px;opacity:.5;">🎤</button>
+  <button id="chat-btn" class="icon-btn" style="position:absolute;top:12px;right:216px;z-index:20;font-size:15px;">💬</button>
   <button id="log-btn" class="icon-btn">📜</button>
   <div id="log-panel"><div class="hud-title">Discovery Log</div><div id="log-list"></div></div>
 
   <div id="radar-container">
-    <div id="radar-title">RADAR</div>
+    <div id="radar-title">RADAR <span class="hint">tap: map</span></div>
     <canvas id="radar-canvas"></canvas>
   </div>
-  <div id="voice-status"></div>
+
+  <!-- Chat panel -->
+  <div id="chat-panel">
+    <div id="chat-header">
+      <div class="hud-title">CHAT</div>
+      <button id="chat-close" class="icon-btn" style="width:30px;height:30px;font-size:13px;">✕</button>
+    </div>
+    <div id="chat-messages"></div>
+    <div id="chat-input-row">
+      <input id="chat-input" type="text" maxlength="140" placeholder="පණිවිඩයක් ලියන්න...">
+      <button id="chat-send">➤</button>
+    </div>
+  </div>
+
+  <!-- Universe map / teleport panel -->
+  <div id="map-panel">
+    <div id="map-header">
+      <h2>UNIVERSE MAP</h2>
+      <button id="map-close" class="icon-btn">✕</button>
+    </div>
+
+    <div class="map-section">
+      <div class="hud-title">Your Position</div>
+      <div id="map-my-pos" style="font-size:13px;color:var(--accent);margin-top:4px;">X 0 &nbsp; Y 0 &nbsp; Z 0</div>
+      <div id="map-my-sector" class="loc-sub" style="margin-top:2px;"></div>
+    </div>
+
+    <div class="map-section">
+      <div class="hud-title" style="margin-bottom:6px;">Nearby Planets</div>
+      <div id="map-planet-list"><div class="map-empty">ආසන්නයේ ග්‍රහලෝක නෑ</div></div>
+    </div>
+
+    <div class="map-section">
+      <div class="hud-title" style="margin-bottom:6px;">Online Explorers</div>
+      <div id="map-player-list"><div class="map-empty">වෙන කිසිවෙක් online නෑ</div></div>
+    </div>
+
+    <div class="map-section">
+      <div class="hud-title" style="margin-bottom:8px;">Teleport</div>
+      <button id="tp-fill-current">📍 use current position</button>
+      <div id="tp-inputs">
+        <input id="tp-x" type="number" placeholder="X" inputmode="numeric">
+        <input id="tp-y" type="number" placeholder="Y" inputmode="numeric">
+        <input id="tp-z" type="number" placeholder="Z" inputmode="numeric">
+      </div>
+      <button id="tp-go">GO ➜</button>
+    </div>
+  </div>
 
   <div id="hint">ඇඟිල්ලෙන් drag කර ship එක හරවන්න • throttle එකෙන් වේගය දෙන්න • ග්‍රහලෝකයකට ළං වූ විට LAND බොත්තම එයි</div>
 
@@ -2406,6 +2500,7 @@ function animate(){
 
     try{ MP.updateLocal(dt); }catch(e){ console.warn('Multiplayer update error:', e); }
     
+    updateLocationHUD();
     if(typeof drawRadar === 'function') drawRadar();
 
     renderer.render(activeScene, camera);
@@ -2415,39 +2510,16 @@ function animate(){
 }
 
 /* =====================================================================
-   MULTIPLAYER + PROXIMITY VOICE  (Supabase Realtime)
-   - Ship positions of every connected player are broadcast over a
-     Supabase Realtime channel and rendered as "ghost ships".
-   - When two players' ships come within CONNECT_RANGE, a WebRTC audio
-     call is negotiated automatically (signaled through the same
-     channel) and the volume is scaled by distance, fading to silence
-     past VOICE_RANGE — walkie-talkie style proximity voice.
-   - The connection forms as soon as two players are in range, regardless
-     of mic state on either side, so a muted player can still hear others
-     (recvonly transceiver). Turning mic on just adds your own outgoing
-     audio track to that same connection.
+   MULTIPLAYER + TEXT CHAT  (Supabase Realtime)
+   - Ship/avatar positions of every connected player are broadcast over a
+     Supabase Realtime channel and rendered as "ghost ships"/avatars.
+   - Chat messages are broadcast on the same channel and shown both in a
+     slide-up chat panel and as a small floating bubble above the sender's
+     ship/avatar for a few seconds — no voice/mic involved at all.
 ===================================================================== */
 const SUPABASE_URL = 'https://spzhifbsmdxppzpfrvca.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_MjHt7ir121YX551IrMHMXA_Pk_Evrxk';
-const VOICE_RANGE   = 260;   // world units — audio fades to 0 beyond this
-const CONNECT_RANGE = 340;   // world units — WebRTC call opens/closes around this (with hysteresis)
-const VOICE_DEBUG   = true;  // console.log every step of the RTC handshake — flip to false once it's working
-function vlog(...args){ if(VOICE_DEBUG) console.log('%c[voice]','color:#5ee7ff', ...args); }
-
-// STUN alone only works when both peers are on networks that allow direct P2P
-// (e.g. same wifi, or open home networks). Mobile data / corporate / campus
-// networks usually sit behind NAT that STUN cannot punch through, and the
-// connection then fails *silently* (connectionState goes to 'failed', no
-// error is ever shown to the user). A TURN server relays the audio in that
-// case. Below is Open Relay's free public TURN server for testing — swap in
-// your own (e.g. Twilio NTS, Cloudflare Calls, or self-hosted coturn) for
-// production, since a free public TURN server has no capacity/uptime guarantee.
-const ICE_SERVERS = [
-  {urls:'stun:stun.l.google.com:19302'},
-  {urls:'turn:openrelay.metered.ca:80', username:'openrelayproject', credential:'openrelayproject'},
-  {urls:'turn:openrelay.metered.ca:443', username:'openrelayproject', credential:'openrelayproject'},
-  {urls:'turn:openrelay.metered.ca:443?transport=tcp', username:'openrelayproject', credential:'openrelayproject'}
-];
+const CHAT_BUBBLE_MS = 5000; // how long a chat bubble stays above a ship/avatar
 
 const MP = (function(){
   const sb = (window.supabase && window.supabase.createClient)
@@ -2458,8 +2530,7 @@ const MP = (function(){
   let myName = (localStorage.getItem('infinity-name')||'').trim() || ('Explorer-'+Math.floor(1000+Math.random()*9000));
 
   const ghosts = new Map();   // id -> {ship:{group,tag}, avatar:{group,tag}, target:{pos,quat}, mode, planetKey}
-  const peers  = new Map();   // id -> {pc, gain}
-  let localStream = null, micOn = false, micRequesting = false, audioCtx = null, lastBroadcast = 0;
+  let lastBroadcast = 0;
 
   function disposeGroup(group){
     group.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material){ if(o.material.map) o.material.map.dispose(); o.material.dispose(); } });
@@ -2467,14 +2538,76 @@ const MP = (function(){
 
   function makeNameSprite(text){
     const cnv = document.createElement('canvas');
-    cnv.width = 256; cnv.height = 64;
+    cnv.width = 220; cnv.height = 50;
     const ctx = cnv.getContext('2d');
-    ctx.fillStyle = 'rgba(6,12,22,0.55)'; ctx.fillRect(0,0,256,64);
-    ctx.font = 'bold 30px monospace'; ctx.fillStyle = '#5ee7ff'; ctx.textAlign = 'center';
-    ctx.fillText(text.slice(0,16), 128, 40);
+    ctx.fillStyle = 'rgba(6,12,22,0.55)'; ctx.fillRect(0,0,220,50);
+    ctx.font = 'bold 20px monospace'; ctx.fillStyle = '#5ee7ff'; ctx.textAlign = 'center';
+    ctx.fillText(text.slice(0,16), 110, 32);
     const spr = new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cnv), depthTest:false, transparent:true}));
-    spr.scale.set(8,2,1); spr.position.y = 2.6;
+    spr.scale.set(3.0,0.68,1); spr.position.y = 2.6;
     return spr;
+  }
+
+  function makeChatBubble(){
+    const cnv = document.createElement('canvas');
+    cnv.width = 420; cnv.height = 96;
+    const tex = new THREE.CanvasTexture(cnv);
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, depthTest:false, transparent:true, opacity:0}));
+    spr.scale.set(0,0,1); spr.position.y = 3.5;
+    spr.userData = {cnv, tex, hideAt:0};
+    return spr;
+  }
+
+  function paintChatBubble(spr, text){
+    const cnv = spr.userData.cnv, ctx = cnv.getContext('2d');
+    ctx.clearRect(0,0,cnv.width,cnv.height);
+    ctx.font = '22px monospace';
+    // wrap into up to 2 lines of ~26 chars
+    const words = text.split(' ');
+    const lines = [];
+    let line = '';
+    words.forEach(w=>{
+      const test = line ? line+' '+w : w;
+      if(test.length > 26){ if(line) lines.push(line); line = w; } else line = test;
+    });
+    if(line) lines.push(line);
+    const shown = lines.slice(0,2);
+    const w = 420, h = 46 + shown.length*26;
+    cnv.height = h;
+    ctx.font = '22px monospace';
+    ctx.fillStyle = 'rgba(6,12,22,0.88)';
+    ctx.strokeStyle = 'rgba(94,231,255,0.55)'; ctx.lineWidth = 2;
+    roundRect(ctx, 4,4,w-8,h-8,14); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#eafcff'; ctx.textAlign = 'center';
+    shown.forEach((l,i)=> ctx.fillText(l, w/2, 34+i*26));
+    spr.userData.tex.needsUpdate = true;
+    const scaleW = 2.6, scaleH = scaleW * (h/w);
+    spr.userData.targetScale = [scaleW, scaleH];
+  }
+
+  function roundRect(ctx,x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+  }
+
+  function showBubble(id, text){
+    const g = id===myId ? myBubbleTarget() : ghosts.get(id);
+    if(!g) return;
+    [g.ship, g.avatar].forEach(obj=>{
+      if(!obj.bubble) return;
+      paintChatBubble(obj.bubble, text);
+      obj.bubble.material.opacity = 1;
+      obj.bubble.userData.hideAt = performance.now() + CHAT_BUBBLE_MS;
+    });
+  }
+
+  // For our own ship/avatar, bubbles are attached directly (see below).
+  function myBubbleTarget(){ return {ship: myShipBubbleHolder, avatar: myAvatarBubbleHolder}; }
+  let myShipBubbleHolder = {bubble:null}, myAvatarBubbleHolder = {bubble:null};
+  function attachOwnBubbles(shipBubble, avatarBubble){
+    myShipBubbleHolder.bubble = shipBubble;
+    myAvatarBubbleHolder.bubble = avatarBubble;
   }
 
   function makeGhostShip(name){
@@ -2486,9 +2619,11 @@ const MP = (function(){
     wing.position.z = 0.4; group.add(wing);
     const tag = makeNameSprite(name);
     group.add(tag);
+    const bubble = makeChatBubble();
+    group.add(bubble);
     group.visible = false;
     spaceScene.add(group);
-    return {group, tag};
+    return {group, tag, bubble};
   }
 
   function makeGhostAvatar(name){
@@ -2498,9 +2633,12 @@ const MP = (function(){
     const tag = makeNameSprite(name);
     tag.position.y = 2.0;
     group.add(tag);
+    const bubble = makeChatBubble();
+    bubble.position.y = 2.9;
+    group.add(bubble);
     group.visible = false;
     surfaceScene.add(group);
-    return {group, tag};
+    return {group, tag, bubble};
   }
 
   function removeGhost(id){
@@ -2510,7 +2648,6 @@ const MP = (function(){
       surfaceScene.remove(g.avatar.group); disposeGroup(g.avatar.group);
       ghosts.delete(id);
     }
-    closePeer(id);
     updateCountUI();
   }
 
@@ -2520,118 +2657,13 @@ const MP = (function(){
     if(channel && channel.state === 'joined') channel.send(msg);
   }
 
-  /* ---------------- WebRTC proximity voice ---------------- */
-  function ensureAudioCtx(){
-    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    if(audioCtx.state==='suspended') audioCtx.resume();
-    return audioCtx;
-  }
-
-  function makePeerConnection(id){
-    const pc = new RTCPeerConnection({iceServers: ICE_SERVERS});
-    if(localStream){
-      localStream.getTracks().forEach(tr=>pc.addTrack(tr, localStream));
-    } else {
-      // No mic of our own (muted / never enabled) — still ask to *receive*
-      // audio, so a muted listener can hear everyone else. Without this,
-      // a peer with mic off never gets an audio track from the other side.
-      pc.addTransceiver('audio', {direction:'recvonly'});
-    }
-    pc.onicecandidate = e=>{
-      if(e.candidate) safeSend({type:'broadcast', event:'rtc', payload:{to:id, from:myId, kind:'candidate', data:e.candidate}});
-    };
-    pc.oniceconnectionstatechange = ()=> vlog('ICE state with', id.slice(0,6), '→', pc.iceConnectionState);
-    pc.onconnectionstatechange = ()=>{
-      vlog('connection state with', id.slice(0,6), '→', pc.connectionState);
-      if(pc.connectionState==='failed' || pc.connectionState==='disconnected') closePeer(id);
-    };
-    let gainNode = null;
-    pc.ontrack = e=>{
-      vlog('received remote audio track from', id.slice(0,6));
-      const ctx = ensureAudioCtx();
-      const src = ctx.createMediaStreamSource(e.streams[0]);
-      gainNode = ctx.createGain();
-      gainNode.gain.value = 0;
-      src.connect(gainNode).connect(ctx.destination);
-    };
-    const rec = {pc, get gain(){return gainNode;}};
-    peers.set(id, rec);
-    return rec;
-  }
-
-  function closePeer(id){
-    const rec = peers.get(id);
-    if(rec){ try{ rec.pc.close(); }catch(e){} peers.delete(id); }
-  }
-
-  async function initiateOffer(id){
-    if(peers.has(id) || !channel || channel.state !== 'joined') return;
-    try{
-      vlog('sending offer to', id.slice(0,6));
-      const rec = makePeerConnection(id);
-      const offer = await rec.pc.createOffer();
-      await rec.pc.setLocalDescription(offer);
-      safeSend({type:'broadcast', event:'rtc', payload:{to:id, from:myId, kind:'offer', data:offer}});
-    }catch(e){
-      console.warn('Failed to initiate offer to', id, ':', e);
-      closePeer(id);
-    }
-  }
-
-  async function handleRTC(payload){
-    if(!payload || payload.to !== myId) return;
-    const {from, kind, data} = payload;
-    if(kind==='offer'){
-      // Answer even with mic off — recvonly transceiver in makePeerConnection
-      // lets a muted player still hear everyone else, walkie-talkie style.
-      vlog('received offer from', from.slice(0,6));
-      const rec = peers.get(from) || makePeerConnection(from);
-      await rec.pc.setRemoteDescription(new RTCSessionDescription(data));
-      const answer = await rec.pc.createAnswer();
-      await rec.pc.setLocalDescription(answer);
-      safeSend({type:'broadcast', event:'rtc', payload:{to:from, from:myId, kind:'answer', data:answer}});
-    } else if(kind==='answer'){
-      vlog('received answer from', from.slice(0,6));
-      const rec = peers.get(from);
-      if(rec) await rec.pc.setRemoteDescription(new RTCSessionDescription(data));
-    } else if(kind==='candidate'){
-      const rec = peers.get(from);
-      if(rec){ try{ await rec.pc.addIceCandidate(data); }catch(e){} }
-    }
-  }
-
-  async function toggleMic(){
-    // guard against rapid double-clicks racing two getUserMedia() calls at once
-    if(micRequesting) return {state:'busy'};
-    if(micOn){
-      if(localStream) localStream.getTracks().forEach(t=>t.stop());
-      localStream = null; micOn = false;
-      Array.from(peers.keys()).forEach(closePeer);
-      return {state:'off'};
-    }
-    // getUserMedia only exists in a "secure context" — https://, or localhost.
-    // Opened as a plain file:// or over http://, the browser removes the API
-    // entirely (silently), which is the #1 reason no popup ever appears.
-    if(!window.isSecureContext){
-      return {state:'insecure'};
-    }
-    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-      return {state:'unsupported'};
-    }
-    micRequesting = true;
-    try{
-      localStream = await navigator.mediaDevices.getUserMedia({audio:true});
-      ensureAudioCtx();
-      micOn = true;
-      return {state:'on'};
-    }catch(e){
-      micOn = false;
-      const denied = e && (e.name==='NotAllowedError' || e.name==='PermissionDeniedError');
-      console.warn('Mic permission error:', e);
-      return {state: denied ? 'denied' : 'error'};
-    }finally{
-      micRequesting = false;
-    }
+  /* ---------------- text chat ---------------- */
+  function sendChat(text){
+    text = (text||'').trim().slice(0,140);
+    if(!text) return;
+    safeSend({type:'broadcast', event:'chat', payload:{id:myId, name:myName, text}});
+    addChatMessage(myName, text, true);
+    showBubble(myId, text);
   }
 
   /* ---------------- presence + position sync ---------------- */
@@ -2672,7 +2704,11 @@ const MP = (function(){
       g.mode = payload.mode;
       g.planetKey = payload.planetKey || null;
     });
-    channel.on('broadcast', {event:'rtc'}, ({payload})=>handleRTC(payload));
+    channel.on('broadcast', {event:'chat'}, ({payload})=>{
+      if(!payload || payload.id===myId) return;
+      addChatMessage(payload.name||'Explorer', payload.text||'', false);
+      showBubble(payload.id, payload.text||'');
+    });
     channel.subscribe(async status=>{
       if(status==='SUBSCRIBED') await channel.track({name: myName});
     });
@@ -2689,9 +2725,26 @@ const MP = (function(){
     if(channel) channel.track({name: myName});
   }
 
+  function fadeBubble(obj){
+    if(!obj.bubble || obj.bubble.material.opacity<=0) return;
+    const now = performance.now();
+    const remain = obj.bubble.userData.hideAt - now;
+    if(remain <= 0){
+      obj.bubble.material.opacity = 0;
+      obj.bubble.scale.set(0,0,1);
+      return;
+    }
+    // pop in over the first 150ms, hold, then fade over the last 400ms
+    const ts = obj.bubble.userData.targetScale || [2.6,0.8];
+    const grow = Math.min(1, (CHAT_BUBBLE_MS - remain)/150);
+    const fade = remain < 400 ? remain/400 : 1;
+    obj.bubble.material.opacity = fade;
+    obj.bubble.scale.set(ts[0]*grow, ts[1]*grow, 1);
+    obj.bubble.quaternion.copy(camera.quaternion);
+  }
+
   function updateLocal(dt){
     const myPlanetKey = state.currentPlanet ? state.currentPlanet.key : null;
-    const localPos = state.mode==='surface' ? player.position : ship.position;
 
     // broadcast our own transform ~9x/sec, in whichever mode we're in
     if(channel && channel.state==='joined' && (state.mode==='space' || state.mode==='surface')){
@@ -2714,6 +2767,10 @@ const MP = (function(){
       }
     }
 
+    // fade our own chat bubble (attached to the real ship/avatar, not a ghost)
+    fadeBubble(myShipBubbleHolder);
+    fadeBubble(myAvatarBubbleHolder);
+
     ghosts.forEach((g,id)=>{
       const sameContext = (state.mode==='space' && g.mode==='space')
                         || (state.mode==='surface' && g.mode==='surface' && g.planetKey===myPlanetKey);
@@ -2726,33 +2783,34 @@ const MP = (function(){
         active.group.position.lerp(g.target.pos, Math.min(1, dt*8));
         active.group.quaternion.slerp(g.target.quat, Math.min(1, dt*8));
         active.tag.quaternion.copy(camera.quaternion);
+        fadeBubble(active);
       } else {
         active.group.visible = false;
       }
-
-      const dist = sameContext ? localPos.distanceTo(active.group.position) : Infinity;
-      if(dist < CONNECT_RANGE && !peers.has(id) && id > myId) initiateOffer(id);
-      if(dist > CONNECT_RANGE*1.4 && peers.has(id)) closePeer(id);
-      const rec = peers.get(id);
-      if(rec && rec.gain) rec.gain.gain.value = dist < VOICE_RANGE ? Math.max(0, 1 - dist/VOICE_RANGE) : 0;
     });
   }
 
   return { 
-    updateLocal, toggleMic, setName, 
-    get micOn(){return micOn;}, 
-    get micRequesting(){return micRequesting;}, 
+    updateLocal, setName, sendChat, attachOwnBubbles, createBubble: makeChatBubble,
     get myName(){return myName;},
-    get ghosts(){return ghosts;},
-    get peers(){return peers;}
+    get myId(){return myId;},
+    get ghosts(){return ghosts;}
   };
 })();
+
+/* Attach a chat bubble sprite to our own ship + avatar so our own messages
+   also float above us (not just other players' ghosts). */
+const ownShipBubble = MP.createBubble();
+ship.add(ownShipBubble);
+const ownAvatarBubble = MP.createBubble();
+ownAvatarBubble.position.y = 2.9;
+player.add(ownAvatarBubble);
+MP.attachOwnBubbles(ownShipBubble, ownAvatarBubble);
 
 /* =====================================================================
    RADAR SYSTEM
 ===================================================================== */
 const radarCanvas = document.getElementById('radar-canvas');
-const voiceStatusEl = document.getElementById('voice-status');
 let radarCtx = null, radarCenterX = 0, radarCenterY = 0, radarWidth = 0, radarHeight = 0;
 
 if(radarCanvas){
@@ -2781,14 +2839,18 @@ function drawRadar(){
   radarCtx.fillStyle = grad;
   radarCtx.fillRect(0, 0, w, h);
   
-  // Draw concentric circles
+  // Draw concentric range rings, labeled with actual world-unit distance
   radarCtx.strokeStyle = 'rgba(94,231,255,0.15)';
   radarCtx.lineWidth = 0.5;
+  radarCtx.font = '7px monospace';
+  radarCtx.fillStyle = 'rgba(94,231,255,0.45)';
+  radarCtx.textAlign = 'left';
   for(let i = 1; i <= 3; i++){
     const r = (w/2) * (i/3);
     radarCtx.beginPath();
     radarCtx.arc(centerX, centerY, r, 0, Math.PI*2);
     radarCtx.stroke();
+    radarCtx.fillText(Math.round(maxDist*i/3)+'u', centerX+3, centerY-r+8);
   }
   
   // Draw cross at center
@@ -2812,100 +2874,223 @@ function drawRadar(){
   radarCtx.strokeStyle = '#5ee7ff';
   radarCtx.lineWidth = 1;
   radarCtx.stroke();
-  
-  // Draw other players
+
   const myPlanetKey = state.currentPlanet ? state.currentPlanet.key : null;
   const myPos = state.mode==='surface' ? player.position : ship.position;
   const myRot = state.mode==='surface' ? player.rotation.y : 0;
+  const cos = Math.cos(myRot), sin = Math.sin(myRot);
+  const scale = (w/2) / maxDist;
+
+  // Nearby planets (space mode only — surface mode has no other planets to show)
+  if(state.mode==='space' && typeof activePlanets !== 'undefined'){
+    let nearestName = null, nearestDist = Infinity;
+    activePlanets.forEach(val=>{
+      if(!val) return;
+      const p = val.data;
+      const dx = p.center.x - myPos.x, dy = p.center.z - myPos.z;
+      const dist = Math.sqrt(dx*dx+dy*dy);
+      if(dist > maxDist) return;
+      const rotX = dx*cos - dy*sin, rotY = dx*sin + dy*cos;
+      const radarX = centerX + rotX*scale, radarY = centerY + rotY*scale;
+      const col = '#'+p.terrainColor.getHexString();
+      radarCtx.fillStyle = col;
+      radarCtx.beginPath();
+      radarCtx.arc(radarX, radarY, 4.5, 0, Math.PI*2);
+      radarCtx.fill();
+      radarCtx.strokeStyle = 'rgba(255,255,255,0.4)'; radarCtx.lineWidth = 0.6;
+      radarCtx.stroke();
+      if(dist < nearestDist){ nearestDist = dist; nearestName = p.name; }
+    });
+    if(nearestName){
+      radarCtx.fillStyle = '#dff8ff';
+      radarCtx.font = '8px monospace';
+      radarCtx.textAlign = 'center';
+      radarCtx.fillText(nearestName.slice(0,16)+' · '+Math.round(nearestDist)+'u', centerX, h-4);
+    }
+  }
   
+  // Other players
   MP.ghosts.forEach((g, id)=>{
     const sameContext = (state.mode==='space' && g.mode==='space')
                       || (state.mode==='surface' && g.mode==='surface' && g.planetKey===myPlanetKey);
-    
     if(!sameContext) return;
     
     const ghostObj = g.mode==='surface' ? g.avatar : g.ship;
     const ghostPos = ghostObj.group.position;
-    
-    let dx = ghostPos.x - myPos.x;
-    let dy = ghostPos.z - myPos.z;
-    if(state.mode==='surface') dy = ghostPos.z - myPos.z;
-    
-    const cos = Math.cos(myRot);
-    const sin = Math.sin(myRot);
-    const rotX = dx * cos - dy * sin;
-    const rotY = dx * sin + dy * cos;
-    
+    const dx = ghostPos.x - myPos.x, dy = ghostPos.z - myPos.z;
     const dist = Math.sqrt(dx*dx + dy*dy);
     if(dist > maxDist) return;
-    
-    const scale = (w/2) / maxDist;
-    const radarX = centerX + rotX * scale;
-    const radarY = centerY + rotY * scale;
+
+    const rotX = dx*cos - dy*sin, rotY = dx*sin + dy*cos;
+    const radarX = centerX + rotX*scale, radarY = centerY + rotY*scale;
     
     const color = dist < 100 ? '#ff5e6c' : (dist < 250 ? '#ffb85e' : '#5ee7ff');
     radarCtx.fillStyle = color;
     radarCtx.beginPath();
     radarCtx.arc(radarX, radarY, 3, 0, Math.PI*2);
     radarCtx.fill();
-    
     radarCtx.strokeStyle = color;
     radarCtx.lineWidth = 1;
     radarCtx.stroke();
   });
-  
-  // Update voice status
-  if(voiceStatusEl){
-    const peerCount = MP.peers.size;
-    const peerText = peerCount === 0 ? 'No Peers' : `${peerCount} Peer${peerCount>1?'s':''}`;
-    const micText = MP.micOn ? '🎤 ON' : MP.micRequesting ? '🎤 ?' : '';
-    voiceStatusEl.textContent = micText ? `${micText}\n${peerText}` : peerText;
-  }
 }
 
-/* mic button + name input wiring */
+/* Tap the radar to open the full Universe Map / Teleport panel */
+document.getElementById('radar-container').addEventListener('click', openMapPanel);
+
+/* chat panel + name input wiring */
 (function initMultiplayerUI(){
-  const micBtn = document.getElementById('mic-btn');
   const nameInput = document.getElementById('name-input');
   if(nameInput) nameInput.value = MP.myName.startsWith('Explorer-') ? '' : MP.myName;
   if(nameInput) nameInput.addEventListener('change', ()=>{ if(nameInput.value.trim()) MP.setName(nameInput.value.trim()); });
 
-  // Reflect the browser's actual current permission state on load, where supported,
-  // so a previously-blocked mic shows red immediately instead of only after a click.
-  if(micBtn && navigator.permissions && navigator.permissions.query){
-    navigator.permissions.query({name:'microphone'}).then(status=>{
-      if(status.state==='denied'){ micBtn.style.opacity='.5'; micBtn.style.color='#ff5e6c'; }
-      status.onchange = ()=>{
-        if(status.state==='denied'){ micBtn.style.opacity='.5'; micBtn.style.color='#ff5e6c'; }
-      };
-    }).catch(()=>{});
-  }
+  const chatBtn = document.getElementById('chat-btn');
+  const chatPanel = document.getElementById('chat-panel');
+  const chatInput = document.getElementById('chat-input');
+  const chatSend = document.getElementById('chat-send');
+  const chatClose = document.getElementById('chat-close');
 
-  if(micBtn){
-    micBtn.addEventListener('click', async ()=>{
-      if(MP.micRequesting) return; // ignore taps while a permission request is already in flight
-      micBtn.style.opacity = '.85';
-      micBtn.textContent = '⏳';
-      const result = await MP.toggleMic();
-      if(result.state==='on'){
-        micBtn.style.opacity = '1'; micBtn.style.color = '#3cffb0'; micBtn.textContent = '🎤';
-      } else if(result.state==='off'){
-        micBtn.style.opacity = '.5'; micBtn.style.color = ''; micBtn.textContent = '🎤';
-      } else if(result.state==='denied'){
-        micBtn.style.opacity = '.5'; micBtn.style.color = '#ff5e6c'; micBtn.textContent = '🎤';
-        alert('Microphone permission block වෙලා තියෙනවා. Browser එකේ address bar එකේ 🔒/ⓘ icon එක click කරලා Microphone → Allow කරලා පිටුව reload කරන්න — permission එකපාරක් deny කළාට පස්සේ site එකේ code එකකින් ආයෙත් popup එක ගේන්න බැහැ, ඒක browser එකේම security rule එකක්.');
-      } else if(result.state==='insecure'){
-        micBtn.style.opacity = '.3'; micBtn.textContent = '🎤';
-        alert('Voice chat වැඩ කරන්න මේ file එක https:// හරහා (හෝ localhost එකෙන්) විවෘත කරන්න ඕනේ. file:// එකෙන් කෙලින්ම open කළොත් හෝ http:// (https නැති) server එකකින් serve කළොත් browser එක microphone API එකම ලබා දෙන්නේ නෑ.');
-      } else if(result.state==='unsupported'){
-        micBtn.style.opacity = '.3'; micBtn.textContent = '🎤';
-        alert('මේ browser එකේ voice chat support වෙන්නේ නෑ.');
-      } else {
-        micBtn.style.opacity = '.5'; micBtn.textContent = '🎤';
-      }
+  function toggleChat(){ chatPanel.classList.toggle('show'); if(chatPanel.classList.contains('show')) chatInput.focus(); }
+  function doSend(){
+    if(!chatInput.value.trim()) return;
+    MP.sendChat(chatInput.value);
+    chatInput.value = '';
+  }
+  chatBtn.addEventListener('click', toggleChat);
+  chatClose.addEventListener('click', ()=>chatPanel.classList.remove('show'));
+  chatSend.addEventListener('click', doSend);
+  chatInput.addEventListener('keydown', e=>{ if(e.key==='Enter') doSend(); });
+})();
+
+function addChatMessage(name, text, isMe){
+  const list = document.getElementById('chat-messages');
+  if(!list) return;
+  const div = document.createElement('div');
+  div.className = 'chat-msg' + (isMe ? ' me' : '');
+  const nameDiv = document.createElement('div');
+  nameDiv.className = 'cname';
+  nameDiv.textContent = name;
+  const textDiv = document.createElement('div');
+  textDiv.className = 'ctext';
+  textDiv.textContent = text;
+  div.appendChild(nameDiv); div.appendChild(textDiv);
+  list.appendChild(div);
+  list.scrollTop = list.scrollHeight;
+  // trim history so the DOM list doesn't grow forever
+  while(list.children.length > 60) list.removeChild(list.firstChild);
+}
+
+/* =====================================================================
+   UNIVERSE MAP + TELEPORT PANEL
+===================================================================== */
+function openMapPanel(){
+  populateMapPanel();
+  document.getElementById('map-panel').classList.add('show');
+}
+function closeMapPanel(){
+  document.getElementById('map-panel').classList.remove('show');
+}
+function populateMapPanel(){
+  const pos = state.mode==='surface' ? player.position : ship.position;
+  document.getElementById('map-my-pos').textContent =
+    'X '+Math.round(pos.x)+'  Y '+Math.round(pos.y)+'  Z '+Math.round(pos.z);
+  const [sx,sy,sz] = currentSector(ship.position);
+  document.getElementById('map-my-sector').textContent =
+    state.mode==='surface' && state.currentPlanet
+      ? 'On surface of '+state.currentPlanet.name
+      : 'Sector '+sx+', '+sy+', '+sz;
+
+  // Nearby planets, sorted by distance
+  const planetList = document.getElementById('map-planet-list');
+  planetList.innerHTML = '';
+  const planets = [];
+  activePlanets.forEach(val=>{
+    if(!val) return;
+    const dist = ship.position.distanceTo(val.data.center);
+    planets.push({data:val.data, dist});
+  });
+  planets.sort((a,b)=>a.dist-b.dist);
+  if(planets.length===0){
+    planetList.innerHTML = '<div class="map-empty">ආසන්නයේ ග්‍රහලෝක නෑ</div>';
+  } else {
+    planets.slice(0,8).forEach(p=>{
+      const row = document.createElement('div');
+      row.className = 'map-row';
+      row.style.cursor = 'pointer';
+      row.innerHTML =
+        '<span><span class="map-planet-color" style="background:#'+p.data.terrainColor.getHexString()+'"></span>'+p.data.name+'</span>'+
+        '<span class="dist">'+Math.round(p.dist)+'u</span>';
+      row.addEventListener('click', ()=>{
+        document.getElementById('tp-x').value = Math.round(p.data.center.x);
+        document.getElementById('tp-y').value = Math.round(p.data.center.y + p.data.radius*2.5);
+        document.getElementById('tp-z').value = Math.round(p.data.center.z);
+      });
+      planetList.appendChild(row);
     });
   }
+
+  // Online players, sorted by distance
+  const playerList = document.getElementById('map-player-list');
+  playerList.innerHTML = '';
+  if(MP.ghosts.size===0){
+    playerList.innerHTML = '<div class="map-empty">වෙන කිසිවෙක් online නෑ</div>';
+  } else {
+    let i=0;
+    MP.ghosts.forEach((g)=>{
+      i++;
+      const gp = g.mode==='surface' ? g.avatar.group.position : g.ship.group.position;
+      const dist = Math.round(ship.position.distanceTo(gp));
+      const row = document.createElement('div');
+      row.className = 'map-row';
+      row.innerHTML = '<span>👤 Explorer '+i+' <span class="loc-sub">('+g.mode+')</span></span><span class="dist">'+dist+'u</span>';
+      playerList.appendChild(row);
+    });
+  }
+}
+
+function teleportToXYZ(x,y,z){
+  if([x,y,z].some(v=>!isFinite(v))) return;
+  // If currently on a surface / mid-transition, snap straight back to space first.
+  if(state.mode!=='space'){
+    activeScene = spaceScene;
+    document.getElementById('surface-controls').classList.remove('show');
+    document.getElementById('space-controls').style.display='block';
+    document.getElementById('mode-line').textContent='Flight';
+    state.mode='space';
+  }
+  ship.position.set(x,y,z);
+  updateUniverseStreaming();
+  const [sx,sy,sz] = currentSector(ship.position);
+  document.getElementById('coord-line').textContent = 'x'+sx+' y'+sy+' z'+sz;
+  document.getElementById('planet-name').textContent = 'Deep Space';
+  closeMapPanel();
+}
+
+(function initMapPanelUI(){
+  document.getElementById('map-close').addEventListener('click', closeMapPanel);
+  document.getElementById('tp-fill-current').addEventListener('click', ()=>{
+    const pos = state.mode==='surface' ? player.position : ship.position;
+    document.getElementById('tp-x').value = Math.round(pos.x);
+    document.getElementById('tp-y').value = Math.round(pos.y);
+    document.getElementById('tp-z').value = Math.round(pos.z);
+  });
+  document.getElementById('tp-go').addEventListener('click', ()=>{
+    const x = parseFloat(document.getElementById('tp-x').value);
+    const y = parseFloat(document.getElementById('tp-y').value);
+    const z = parseFloat(document.getElementById('tp-z').value);
+    teleportToXYZ(isFinite(x)?x:0, isFinite(y)?y:0, isFinite(z)?z:0);
+  });
 })();
+
+/* exact live position readout, top-left corner */
+function updateLocationHUD(){
+  const pos = state.mode==='surface' ? player.position : ship.position;
+  const el = document.getElementById('exact-coord-line');
+  const sub = document.getElementById('location-sub');
+  if(el) el.textContent = 'X '+Math.round(pos.x)+' Y '+Math.round(pos.y)+' Z '+Math.round(pos.z);
+  if(sub) sub.textContent = state.mode==='surface' && state.currentPlanet ? state.currentPlanet.name : 'Deep Space';
+}
+
 
 /* fade hint after a while, only once the player is actually in the game */
 let hintFadeTimer=null;

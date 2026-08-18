@@ -1,0 +1,2772 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>INFINITY // Procedural Universe Explorer</title>
+<style>
+  :root{
+    --accent:#5ee7ff;
+    --accent-dim:#2a7a8c;
+    --danger:#ff5e6c;
+    --bg:#03040a;
+    --panel:rgba(6,12,22,0.82);
+    --panel-border:rgba(94,231,255,0.25);
+    --font:'Consolas','SF Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none;}
+  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000;touch-action:none;overscroll-behavior:none;font-family:var(--font);color:#dff8ff;}
+  #scene{position:fixed;inset:0;display:block;width:100%;height:100%;}
+  .ui{position:fixed;inset:0;pointer-events:none;z-index:5;}
+  .ui > *{pointer-events:auto;}
+
+  /* ---------- HUD ---------- */
+  #hud{position:absolute;top:0;left:0;right:0;padding:10px 12px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;transition:opacity .25s;}
+  #hud.hidden{opacity:0;pointer-events:none;}
+  .hud-block{background:var(--panel);border:1px solid var(--panel-border);border-radius:10px;padding:8px 12px;font-size:11px;letter-spacing:.5px;backdrop-filter:blur(6px);min-width:150px;}
+  .hud-title{color:var(--accent);font-size:10px;letter-spacing:1.5px;opacity:.8;margin-bottom:4px;text-transform:uppercase;}
+  .bar-track{width:100%;height:6px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:3px;}
+  .bar-fill{height:100%;background:linear-gradient(90deg,var(--accent-dim),var(--accent));transition:width .15s;}
+  .bar-fill.fuel-low{background:linear-gradient(90deg,#8c2a2a,var(--danger));}
+  #planet-name-box{text-align:right;}
+  #planet-name{color:var(--accent);font-size:14px;font-weight:bold;letter-spacing:1px;}
+  #coord-line{opacity:.65;font-size:10px;margin-top:2px;}
+
+  /* discovery log */
+  #log-panel{position:absolute;top:70px;right:12px;width:190px;max-height:32vh;overflow-y:auto;background:var(--panel);border:1px solid var(--panel-border);border-radius:10px;padding:8px 10px;font-size:10px;display:none;}
+  #log-panel.show{display:block;}
+  #log-panel .entry{padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);opacity:.85;}
+
+  /* ---------- Buttons ---------- */
+  .icon-btn{width:44px;height:44px;border-radius:50%;background:var(--panel);border:1px solid var(--panel-border);color:var(--accent);font-size:20px;display:flex;align-items:center;justify-content:center;}
+  #settings-btn{position:absolute;bottom:14px;right:14px;z-index:20;}
+  #log-btn{position:absolute;top:12px;right:170px;z-index:20;font-size:14px;}
+
+  /* ---------- Space flight controls ---------- */
+  #space-controls{position:absolute;inset:0;}
+  #drag-zone{position:absolute;inset:0;}
+  #throttle-wrap{position:absolute;left:16px;bottom:26px;width:56px;height:170px;background:var(--panel);border:1px solid var(--panel-border);border-radius:30px;display:flex;flex-direction:column;align-items:center;padding:10px 0;}
+  #throttle-label{font-size:9px;color:var(--accent);letter-spacing:1px;margin-bottom:6px;}
+  #throttle-track{position:relative;flex:1;width:8px;background:rgba(255,255,255,.08);border-radius:5px;}
+  #throttle-fill{position:absolute;bottom:0;left:0;width:100%;background:linear-gradient(0deg,var(--accent-dim),var(--accent));border-radius:5px;}
+  #throttle-handle{position:absolute;left:50%;width:30px;height:18px;background:var(--accent);border-radius:6px;transform:translate(-50%,50%);box-shadow:0 0 10px var(--accent);}
+  #boost-btn{position:absolute;right:16px;bottom:100px;width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffb85e,#c9581a);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:11px;font-weight:bold;display:flex;align-items:center;justify-content:center;}
+  #boost-btn:active{filter:brightness(1.3);}
+  #land-btn{position:absolute;left:50%;bottom:30px;transform:translateX(-50%);padding:12px 26px;border-radius:26px;background:var(--accent);color:#03131a;font-weight:bold;font-size:13px;letter-spacing:1px;border:none;display:none;box-shadow:0 0 20px var(--accent);}
+  #land-btn.show{display:block;}
+
+  /* ---------- Surface controls ---------- */
+  #surface-controls{position:absolute;inset:0;display:none;}
+  #surface-controls.show{display:block;}
+  #joy-zone{position:absolute;left:0;bottom:0;width:45%;height:55%;}
+  #joy-base{position:absolute;width:110px;height:110px;border-radius:50%;background:rgba(94,231,255,.08);border:1px solid var(--panel-border);display:none;}
+  #joy-stick{position:absolute;width:48px;height:48px;border-radius:50%;background:var(--accent);opacity:.85;box-shadow:0 0 12px var(--accent);}
+  #cam-zone{position:absolute;right:0;bottom:0;width:55%;height:100%;}
+  #jump-btn{position:absolute;right:16px;bottom:170px;width:60px;height:60px;border-radius:50%;background:var(--panel);border:1px solid var(--panel-border);color:var(--accent);font-size:11px;font-weight:bold;display:flex;align-items:center;justify-content:center;}
+  #takeoff-btn{position:absolute;left:50%;top:16px;transform:translateX(-50%);padding:10px 22px;border-radius:22px;background:var(--panel);border:1px solid var(--accent);color:var(--accent);font-size:12px;font-weight:bold;letter-spacing:1px;}
+
+  /* ---------- Discovery toast ---------- */
+  #discover-toast{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%) scale(.9);background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:14px 22px;text-align:center;opacity:0;transition:all .4s;pointer-events:none;}
+  #discover-toast.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
+  #discover-toast .t1{font-size:10px;letter-spacing:2px;color:var(--accent);opacity:.75;}
+  #discover-toast .t2{font-size:17px;font-weight:bold;margin-top:3px;}
+
+  /* ---------- Hint overlay ---------- */
+  #hint{position:absolute;left:50%;top:14%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--panel-border);border-radius:10px;padding:10px 16px;font-size:11px;text-align:center;max-width:80%;opacity:1;transition:opacity 1s;line-height:1.5;}
+
+  /* ---------- Settings ---------- */
+  #settings-panel{position:fixed;inset:0;background:rgba(2,4,10,.92);display:none;z-index:50;padding:22px 18px;overflow-y:auto;}
+  #settings-panel.show{display:block;}
+  #settings-panel h2{color:var(--accent);font-size:16px;letter-spacing:2px;margin:4px 0 18px;}
+  .set-row{margin-bottom:18px;}
+  .set-row label{display:block;font-size:11px;letter-spacing:1px;color:#bfeeff;margin-bottom:6px;}
+  .set-row input[type=range]{width:100%;accent-color:var(--accent);}
+  .set-row input[type=color]{width:60px;height:34px;border:none;border-radius:8px;background:none;}
+  .set-toggle{display:flex;justify-content:space-between;align-items:center;background:var(--panel);border:1px solid var(--panel-border);border-radius:10px;padding:10px 14px;margin-bottom:12px;}
+  .switch{width:42px;height:24px;border-radius:14px;background:rgba(255,255,255,.15);position:relative;}
+  .switch.on{background:var(--accent-dim);}
+  .switch::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s;}
+  .switch.on::after{left:20px;background:var(--accent);}
+  .set-btn{width:100%;padding:12px;border-radius:10px;background:var(--panel);border:1px solid var(--panel-border);color:var(--accent);font-size:12px;letter-spacing:1px;margin-bottom:12px;}
+  .set-btn.danger{color:var(--danger);border-color:rgba(255,94,108,.4);}
+  #close-settings{position:absolute;top:18px;right:16px;}
+  select.gfx{width:100%;background:var(--panel);color:var(--accent);border:1px solid var(--panel-border);border-radius:8px;padding:10px;font-family:var(--font);font-size:12px;}
+
+  /* ---------- Intro / title screen ---------- */
+  :root{
+    --void-accent:#ff2d6b;
+    --void-accent2:#7a3cff;
+    --void-glow:#ff6ea3;
+  }
+  #intro-screen{
+    position:fixed;inset:0;z-index:100;
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(122,60,255,0.18), transparent 60%),
+      radial-gradient(ellipse at 50% 90%, rgba(255,45,107,0.12), transparent 55%),
+      #060309;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    overflow:hidden;transition:opacity .5s ease;
+  }
+  #intro-screen.hide{opacity:0;pointer-events:none;}
+  #intro-scanlines{
+    position:absolute;inset:0;pointer-events:none;opacity:.25;
+    background:repeating-linear-gradient(180deg,rgba(255,255,255,.05) 0px,rgba(255,255,255,.05) 1px,transparent 2px,transparent 4px);
+    mix-blend-mode:overlay;
+  }
+  #intro-noise{
+    position:absolute;inset:0;pointer-events:none;opacity:.06;
+    background-image:radial-gradient(circle,#fff 1px,transparent 1px);
+    background-size:3px 3px;
+  }
+  #intro-title-wrap{position:relative;text-align:center;padding:0 20px;}
+  #intro-title{
+    position:relative;font-family:var(--font);font-weight:bold;margin:0;
+    font-size:clamp(38px,11vw,84px);letter-spacing:6px;
+    color:#f4eaff;text-transform:uppercase;
+    text-shadow:0 0 18px rgba(255,45,107,.55), 0 0 44px rgba(122,60,255,.35);
+  }
+  #intro-title .glitch-layer{
+    position:absolute;top:0;left:0;width:100%;height:100%;
+    overflow:hidden;color:inherit;
+  }
+  #intro-title .g1{color:var(--void-accent);mix-blend-mode:screen;animation:glitchShift1 3.4s infinite linear;}
+  #intro-title .g2{color:#3cffb0;mix-blend-mode:screen;animation:glitchShift2 2.6s infinite linear;}
+  @keyframes glitchShift1{
+    0%,89%,100%{clip-path:inset(0 0 0 0);transform:translate(0,0);}
+    90%{clip-path:inset(10% 0 60% 0);transform:translate(-3px,-1px);}
+    92%{clip-path:inset(60% 0 5% 0);transform:translate(3px,1px);}
+    94%{clip-path:inset(30% 0 40% 0);transform:translate(-2px,1px);}
+    96%{clip-path:inset(5% 0 80% 0);transform:translate(2px,-1px);}
+    98%{clip-path:inset(0 0 0 0);transform:translate(0,0);}
+  }
+  @keyframes glitchShift2{
+    0%,85%,100%{clip-path:inset(0 0 0 0);transform:translate(0,0);}
+    86%{clip-path:inset(70% 0 5% 0);transform:translate(3px,0);}
+    89%{clip-path:inset(15% 0 55% 0);transform:translate(-3px,1px);}
+    92%{clip-path:inset(45% 0 20% 0);transform:translate(2px,-1px);}
+    95%{clip-path:inset(0 0 0 0);transform:translate(0,0);}
+  }
+  #intro-subtitle{
+    margin-top:14px;font-size:12px;letter-spacing:4px;color:var(--void-glow);opacity:.8;text-transform:uppercase;
+  }
+  #name-input{
+    margin-top:34px;display:block;width:min(78vw,280px);padding:12px 16px;font-family:var(--font);font-size:13px;
+    letter-spacing:1px;color:#fff0f6;text-align:center;
+    background:rgba(20,10,30,.55);border:1px solid rgba(255,110,163,.5);border-radius:6px;outline:none;
+  }
+  #name-input::placeholder{color:rgba(255,240,246,.45);}
+  #enter-btn{
+    margin-top:22px;padding:15px 46px;font-family:var(--font);font-size:14px;font-weight:bold;
+    letter-spacing:3px;text-transform:uppercase;color:#fff0f6;
+    background:linear-gradient(135deg,rgba(122,60,255,.25),rgba(255,45,107,.25));
+    border:1px solid var(--void-accent);border-radius:4px;
+    box-shadow:0 0 22px rgba(255,45,107,.35), inset 0 0 14px rgba(122,60,255,.2);
+    animation:enterPulse 2.2s ease-in-out infinite;
+  }
+  @keyframes enterPulse{
+    0%,100%{box-shadow:0 0 22px rgba(255,45,107,.35), inset 0 0 14px rgba(122,60,255,.2);}
+    50%{box-shadow:0 0 34px rgba(255,45,107,.6), inset 0 0 20px rgba(122,60,255,.35);}
+  }
+  #enter-btn:active{filter:brightness(1.3);}
+
+  /* full-screen glitch transition when entering the game */
+  #intro-screen.glitching #intro-title-wrap, #intro-screen.glitching #enter-btn{
+    animation:enterGlitchJitter .55s steps(2,end) 3;
+  }
+  #intro-screen.glitching{ animation:screenGlitchFlash .65s steps(3,end); }
+  @keyframes enterGlitchJitter{
+    0%{transform:translate(0,0);filter:none;}
+    20%{transform:translate(-6px,2px);filter:hue-rotate(40deg);}
+    40%{transform:translate(6px,-3px);filter:hue-rotate(-30deg) saturate(2);}
+    60%{transform:translate(-4px,-2px);filter:invert(.15);}
+    80%{transform:translate(4px,3px);filter:hue-rotate(60deg);}
+    100%{transform:translate(0,0);filter:none;}
+  }
+  @keyframes screenGlitchFlash{
+    0%{background-color:#060309;}
+    15%{background-color:#fff;}
+    16%{background-color:#000;}
+    30%{background-color:#060309;}
+    55%{background-color:#3cffb0;}
+    57%{background-color:#060309;}
+    80%{background-color:#ff2d6b;}
+    82%{background-color:#060309;}
+    100%{background-color:#060309;}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<!-- Intro / title screen -->
+<div id="intro-screen">
+  <div id="intro-scanlines"></div>
+  <div id="intro-noise"></div>
+  <div id="intro-title-wrap">
+    <h1 id="intro-title" data-text="INFINITY VOID">
+      INFINITY VOID
+      <span class="glitch-layer g1" aria-hidden="true">INFINITY VOID</span>
+      <span class="glitch-layer g2" aria-hidden="true">INFINITY VOID</span>
+    </h1>
+    <div id="intro-subtitle">Procedural Universe Explorer</div>
+    <input id="name-input" type="text" maxlength="16" placeholder="ඔබේ නම (Explorer name)" autocomplete="off">
+    <button id="enter-btn">Enter</button>
+  </div>
+</div>
+
+
+<div class="ui">
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-block">
+      <div class="hud-title">Energy</div>
+      <div class="bar-track"><div class="bar-fill" id="fuel-bar" style="width:100%"></div></div>
+      <div style="font-size:9px;opacity:.6;margin-top:2px;">UNLIMITED</div>
+      <div class="hud-title" style="margin-top:8px;">Mode</div>
+      <div id="mode-line">Flight</div>
+    </div>
+    <div class="hud-block" id="planet-name-box">
+      <div class="hud-title">Sector</div>
+      <div id="planet-name">Deep Space</div>
+      <div id="coord-line">x0 y0 z0</div>
+      <div class="hud-title" style="margin-top:8px;">Universe</div>
+      <div id="mp-count">1 online</div>
+    </div>
+  </div>
+
+  <button id="mic-btn" class="icon-btn" style="position:absolute;top:12px;right:216px;z-index:20;font-size:16px;opacity:.5;">🎤</button>
+  <button id="log-btn" class="icon-btn">📜</button>
+  <div id="log-panel"><div class="hud-title">Discovery Log</div><div id="log-list"></div></div>
+
+  <div id="hint">ඇඟිල්ලෙන් drag කර ship එක හරවන්න • throttle එකෙන් වේගය දෙන්න • ග්‍රහලෝකයකට ළං වූ විට LAND බොත්තම එයි</div>
+
+  <!-- Space controls -->
+  <div id="space-controls">
+    <div id="drag-zone"></div>
+    <div id="throttle-wrap">
+      <div id="throttle-label">THR</div>
+      <div id="throttle-track"><div id="throttle-fill"></div><div id="throttle-handle"></div></div>
+    </div>
+    <button id="boost-btn">BOOST</button>
+    <button id="land-btn">⬇ LAND</button>
+  </div>
+
+  <!-- Surface controls -->
+  <div id="surface-controls">
+    <div id="joy-zone"><div id="joy-base"></div><div id="joy-stick"></div></div>
+    <div id="cam-zone"></div>
+    <button id="jump-btn">JUMP</button>
+    <button id="takeoff-btn">🚀 TAKE OFF</button>
+  </div>
+
+  <div id="discover-toast"><div class="t1">NEW PLANET DISCOVERED</div><div class="t2" id="discover-name">-</div></div>
+
+  <button id="settings-btn" class="icon-btn">⚙</button>
+</div>
+
+<!-- Settings Panel -->
+<div id="settings-panel">
+  <button id="close-settings" class="icon-btn">✕</button>
+  <h2>SETTINGS</h2>
+
+  <div class="set-row">
+    <label>Ship Color</label>
+    <input type="color" id="ship-color" value="#5ee7ff">
+  </div>
+
+  <div class="set-row">
+    <label>Touch Sensitivity</label>
+    <input type="range" id="sensitivity" min="0.2" max="3" step="0.1" value="1">
+  </div>
+
+  <div class="set-row">
+    <label>Master Volume</label>
+    <input type="range" id="volume" min="0" max="1" step="0.05" value="0.4">
+  </div>
+
+  <div class="set-row">
+    <label>Graphics Quality</label>
+    <select class="gfx" id="gfx-quality">
+      <option value="low">Low (Battery Saver)</option>
+      <option value="medium" selected>Medium</option>
+      <option value="high">High</option>
+    </select>
+  </div>
+
+  <div class="set-toggle">
+    <span>Invert Camera Y</span>
+    <div class="switch" id="invert-toggle"></div>
+  </div>
+
+  <div class="set-toggle">
+    <span>Show HUD</span>
+    <div class="switch on" id="hud-toggle"></div>
+  </div>
+
+  <button class="set-btn" id="fullscreen-btn">⛶ Toggle Fullscreen</button>
+  <button class="set-btn danger" id="restart-btn">↺ Restart Universe (New Seed)</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* =====================================================================
+   UTILITIES : seeded PRNG, hashing, noise
+===================================================================== */
+function mulberry32(seed){
+  let a = seed >>> 0;
+  return function(){
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function hashCoords(){
+  let h = 2166136261;
+  for(let i=0;i<arguments.length;i++){
+    let v = Math.floor(arguments[i]) | 0;
+    h ^= v; h = Math.imul(h, 16777619);
+    h ^= (h>>>13);
+  }
+  return h >>> 0;
+}
+function makeNoise2D(seed){
+  const rand = mulberry32(seed);
+  const perm = new Uint8Array(256);
+  for(let i=0;i<256;i++) perm[i]=i;
+  for(let i=255;i>0;i--){ const j=Math.floor(rand()*(i+1)); const tmp=perm[i]; perm[i]=perm[j]; perm[j]=tmp; }
+  const p = new Uint8Array(512);
+  for(let i=0;i<512;i++) p[i]=perm[i&255];
+  function fade(t){return t*t*t*(t*(t*6-15)+10);}
+  function lerp(a,b,t){return a+t*(b-a);}
+  function grad(hash,x,y){
+    const h = hash & 3;
+    const u = h<2 ? x : y;
+    const v = h<2 ? y : x;
+    return ((h&1)?-u:u) + ((h&2)?-2*v:2*v);
+  }
+  return function(x,y){
+    const X = Math.floor(x)&255, Y=Math.floor(y)&255;
+    const xf = x-Math.floor(x), yf = y-Math.floor(y);
+    const u=fade(xf), v=fade(yf);
+    const aa=p[p[X]+Y], ab=p[p[X]+Y+1], ba=p[p[X+1]+Y], bb=p[p[X+1]+Y+1];
+    return lerp(lerp(grad(aa,xf,yf),grad(ba,xf-1,yf),u), lerp(grad(ab,xf,yf-1),grad(bb,xf-1,yf-1),u), v);
+  };
+}
+function lerpColor(c1,c2,t){ return new THREE.Color(c1).lerp(new THREE.Color(c2), t); }
+function pick(rand, arr){ return arr[Math.floor(rand()*arr.length)]; }
+
+// Universe-wide seed offset (changes on "restart universe")
+let UNIVERSE_OFFSET = 0;
+
+/* Planet naming */
+const NAME_A = ['Xel','Vor','Kri','Tha','Nyu','Zar','Quo','Bel','Ashk','Or','Ith','Mor','Fen','Ry','Sol','Umb','Vex','Cael','Drav','Noc'];
+const NAME_B = ['on','ara','isk','en','ova','ith','ux','ir','al','yne','os','eth','and','iel','uk','ax'];
+function planetName(seed){
+  const r = mulberry32(seed ^ 0x9E3779B9);
+  const n = pick(r, NAME_A) + pick(r, NAME_B) + (r()<0.5? pick(r,NAME_A).toLowerCase(): '');
+  const num = Math.floor(r()*9999);
+  return n.charAt(0).toUpperCase()+n.slice(1)+'-'+num;
+}
+
+/* =====================================================================
+   GLOBAL STATE
+===================================================================== */
+const state = {
+  mode: 'space',          // 'space' | 'landing' | 'surface' | 'takeoff'
+  sensitivity: 1.0,
+  invertY: false,
+  volume: 0.4,
+  gfx: 'medium',
+  hudOn: true,
+  fuel: 100,
+  throttle: 0,
+  boosting: false,
+  boostT: 0,
+  shipColor: 0x5ee7ff,
+  discovered: {},
+  currentPlanet: null,
+  spacePos: new THREE.Vector3(0,0,0),
+};
+
+const GFX = {
+  low:    { floraPerChunk: 5,  creaturesPerChunk: 1.1, structPerChunk: 1.3, particles: 800,  segs: 24 },
+  medium: { floraPerChunk: 9,  creaturesPerChunk: 1.8, structPerChunk: 2.2, particles: 1800, segs: 40 },
+  high:   { floraPerChunk: 14, creaturesPerChunk: 2.6, structPerChunk: 3.2, particles: 3200, segs: 64 },
+};
+const CREATURE_ARCHETYPE_COUNT = 100; // 14 locomotion/body systems x ~8 decoration variants
+
+/* =====================================================================
+   RENDERER / SCENE / CAMERA
+===================================================================== */
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+// If the GPU ever drops the context (e.g. it was pushed too hard by a
+// dense planet before the leak above was fixed), recover gracefully
+// instead of leaving the player on a frozen black screen.
+canvas.addEventListener('webglcontextlost', e=>{
+  e.preventDefault();
+  console.warn('WebGL context lost — will restore automatically.');
+}, false);
+canvas.addEventListener('webglcontextrestored', ()=>{
+  console.warn('WebGL context restored.');
+  buildStarfield();
+  if(state.mode==='surface' && state.currentPlanet) landOnPlanet(state.currentPlanet);
+}, false);
+
+const spaceScene = new THREE.Scene();
+const surfaceScene = new THREE.Scene();
+let activeScene = spaceScene;
+
+const camera = new THREE.PerspectiveCamera(65, window.innerWidth/window.innerHeight, 0.1, 20000);
+
+window.addEventListener('resize', ()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* =====================================================================
+   STARFIELD (space background)
+===================================================================== */
+let starField;
+function buildStarfield(){
+  if(starField){ spaceScene.remove(starField); starField.geometry.dispose(); starField.material.dispose(); }
+  const count = GFX[state.gfx].particles;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(count*3);
+  for(let i=0;i<count;i++){
+    pos[i*3]   = (Math.random()-0.5)*4000;
+    pos[i*3+1] = (Math.random()-0.5)*4000;
+    pos[i*3+2] = (Math.random()-0.5)*4000;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  const mat = new THREE.PointsMaterial({color:0xffffff, size:2.2, sizeAttenuation:true});
+  starField = new THREE.Points(geo, mat);
+  spaceScene.add(starField);
+}
+buildStarfield();
+spaceScene.add(new THREE.AmbientLight(0x556677, 1.2));
+const spaceSun = new THREE.DirectionalLight(0xffffff, 1.0);
+spaceSun.position.set(200,300,100);
+spaceScene.add(spaceSun);
+
+/* =====================================================================
+   SHIP
+===================================================================== */
+const ship = new THREE.Group();
+const shipMat = new THREE.MeshStandardMaterial({color: state.shipColor, metalness:0.6, roughness:0.35, emissive:0x0a2530, emissiveIntensity:0.4});
+const hullGeo = new THREE.ConeGeometry(0.9, 3.2, 8);
+hullGeo.rotateX(Math.PI/2);
+const hull = new THREE.Mesh(hullGeo, shipMat);
+ship.add(hull);
+const wingGeo = new THREE.BoxGeometry(3.4, 0.12, 1.0);
+const wingMat = new THREE.MeshStandardMaterial({color:0x223344, metalness:0.5, roughness:0.5});
+const wing = new THREE.Mesh(wingGeo, wingMat);
+wing.position.z = 0.4;
+ship.add(wing);
+const engineGlowGeo = new THREE.SphereGeometry(0.28,8,8);
+const engineGlowMat = new THREE.MeshBasicMaterial({color:0x5ee7ff});
+const engineL = new THREE.Mesh(engineGlowGeo, engineGlowMat); engineL.position.set(-1.4,0,1.1); ship.add(engineL);
+const engineR = engineL.clone(); engineR.position.x = 1.4; ship.add(engineR);
+ship.position.set(0,0,0);
+spaceScene.add(ship);
+
+/* Ship orientation is tracked via quaternion (free 360 rotation) */
+const shipQuat = new THREE.Quaternion();
+
+/* =====================================================================
+   UNIVERSE : sector-based planet placement
+===================================================================== */
+const SECTOR = 900;               // sector size in world units
+const PLANET_PROB = 0.25;         // chance a sector contains a planet (සාමාන්ය - අඩු)
+const activePlanets = new Map();  // key "x,y,z" -> {data, group}
+
+function sectorPlanetData(sx,sy,sz){
+  const seed = hashCoords(sx+UNIVERSE_OFFSET, sy, sz-UNIVERSE_OFFSET);
+  const r = mulberry32(seed);
+  if(r() > PLANET_PROB) return null;
+  const posOffset = new THREE.Vector3((r()-0.5)*SECTOR*0.7,(r()-0.5)*SECTOR*0.5,(r()-0.5)*SECTOR*0.7);
+  const center = new THREE.Vector3(sx*SECTOR,sy*SECTOR,sz*SECTOR).add(posOffset);
+  const radius = 40 + r()*90; // සාමාන්ය ප්‍රමාණ - නිවැරදි
+  const hueA = r(); // terrain hue
+  const hueB = (hueA + 0.25 + r()*0.5) % 1; // atmosphere hue
+  const terrainColor = new THREE.Color().setHSL(hueA, 0.45+r()*0.35, 0.32+r()*0.25);
+  const skyColor = new THREE.Color().setHSL(hueB, 0.55+r()*0.3, 0.55+r()*0.2);
+  const fogColor = skyColor.clone().lerp(new THREE.Color(0x000000), 0.25);
+  const gravity = 4 + r()*14;
+  const floraStyle = Math.floor(r()*6);
+  const structStyle = Math.floor(r()*4);
+  const creatureStyle = Math.floor(r()*CREATURE_ARCHETYPE_COUNT);
+  const hasRings = r() < 0.25;
+  return {
+    seed, center, radius, terrainColor, skyColor, fogColor, gravity,
+    floraStyle, structStyle, creatureStyle, hasRings,
+    name: planetName(seed), key: sx+','+sy+','+sz,
+    coord: {x:sx,y:sy,z:sz}
+  };
+}
+
+function planetMesh(data){
+  const g = new THREE.Group();
+  const geo = new THREE.IcosahedronGeometry(data.radius, 3);
+  const noise = makeNoise2D(data.seed);
+  const posAttr = geo.attributes.position;
+  const colors = [];
+  for(let i=0;i<posAttr.count;i++){
+    const vx=posAttr.getX(i), vy=posAttr.getY(i), vz=posAttr.getZ(i);
+    const n = noise(vx*0.05+vy*0.02, vz*0.05+vy*0.02);
+    const scale = 1 + n*0.06;
+    posAttr.setXYZ(i, vx*scale, vy*scale, vz*scale);
+    const c = data.terrainColor.clone().lerp(new THREE.Color(0xffffff), Math.max(0,n)*0.25);
+    colors.push(c.r,c.g,c.b);
+  }
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(colors,3));
+  geo.computeVertexNormals();
+  const mat = new THREE.MeshStandardMaterial({vertexColors:true, roughness:0.85, metalness:0.05});
+  const body = new THREE.Mesh(geo, mat);
+  g.add(body);
+  // atmosphere glow
+  const atmoGeo = new THREE.SphereGeometry(data.radius*1.12, 24, 24);
+  const atmoMat = new THREE.MeshBasicMaterial({color:data.skyColor, transparent:true, opacity:0.18, side:THREE.BackSide});
+  g.add(new THREE.Mesh(atmoGeo, atmoMat));
+  if(data.hasRings){
+    const ringGeo = new THREE.RingGeometry(data.radius*1.5, data.radius*2.1, 48);
+    const ringMat = new THREE.MeshBasicMaterial({color:data.skyColor, transparent:true, opacity:0.35, side:THREE.DoubleSide});
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI/2.4;
+    g.add(ring);
+  }
+  g.position.copy(data.center);
+  return g;
+}
+
+function currentSector(pos){
+  return [Math.round(pos.x/SECTOR), Math.round(pos.y/SECTOR), Math.round(pos.z/SECTOR)];
+}
+
+function updateUniverseStreaming(){
+  const [sx,sy,sz] = currentSector(ship.position);
+  const RANGE = 1;
+  const needed = new Set();
+  for(let dx=-RANGE;dx<=RANGE;dx++)
+  for(let dy=-RANGE;dy<=RANGE;dy++)
+  for(let dz=-RANGE;dz<=RANGE;dz++){
+    const kx=sx+dx, ky=sy+dy, kz=sz+dz;
+    const key = kx+','+ky+','+kz;
+    needed.add(key);
+    if(!activePlanets.has(key)){
+      const data = sectorPlanetData(kx,ky,kz);
+      if(data){
+        const group = planetMesh(data);
+        spaceScene.add(group);
+        activePlanets.set(key, {data, group});
+      } else {
+        activePlanets.set(key, null);
+      }
+    }
+  }
+  for(const [key,val] of activePlanets){
+    if(!needed.has(key)){
+      if(val && val.group){
+        spaceScene.remove(val.group);
+        val.group.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material) o.material.dispose(); });
+      }
+      activePlanets.delete(key);
+    }
+  }
+}
+
+function nearestPlanet(){
+  let best=null, bestDist=Infinity;
+  for(const val of activePlanets.values()){
+    if(!val) continue;
+    const d = ship.position.distanceTo(val.data.center) - val.data.radius;
+    if(d < bestDist){ bestDist=d; best=val.data; }
+  }
+  return {planet:best, dist:bestDist};
+}
+
+/* The sector the ship spawns in (0,0,0) is deterministic — if it happens
+   to roll a planet whose body swallows the origin, the player would
+   otherwise appear buried inside solid planet geometry with their own
+   ship invisible around them. Nudge the ship just outside that planet
+   (clear of its solid body + atmosphere shell) so every spawn — the
+   first load and every "Restart Universe" — starts in open space with
+   the ship clearly visible. Sectors other than home can't reach this
+   close to the origin (their placement offset is smaller than SECTOR),
+   so only sector (0,0,0) ever needs checking here. */
+function ensureSafeSpawn(){
+  const home = sectorPlanetData(0,0,0);
+  if(!home) return;
+  const CLEARANCE = 80;
+  const d = ship.position.distanceTo(home.center) - home.radius;
+  if(d < CLEARANCE){
+    const away = ship.position.clone().sub(home.center);
+    if(away.lengthSq() < 1e-6) away.set(0,0.2,1);
+    away.normalize();
+    ship.position.copy(home.center).addScaledVector(away, home.radius + CLEARANCE);
+  }
+}
+
+/* =====================================================================
+   SPACE INPUT: drag-to-rotate + throttle + boost
+===================================================================== */
+let dragActive=false, lastX=0, lastY=0;
+const dragZone = document.getElementById('drag-zone');
+function onDragStart(x,y){ dragActive=true; lastX=x; lastY=y; }
+function onDragMove(x,y){
+  if(!dragActive) return;
+  const dx = (x-lastX) * 0.0038 * state.sensitivity;
+  const dy = (y-lastY) * 0.0038 * state.sensitivity * (state.invertY?-1:1);
+  lastX=x; lastY=y;
+  const qYaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), -dx);
+  const qPitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0), -dy);
+  shipQuat.multiply(qYaw).multiply(qPitch);
+  shipQuat.normalize();
+}
+function onDragEnd(){ dragActive=false; }
+dragZone.addEventListener('touchstart', e=>{ const t=e.changedTouches[0]; onDragStart(t.clientX,t.clientY); }, {passive:true});
+dragZone.addEventListener('touchmove', e=>{ const t=e.changedTouches[0]; onDragMove(t.clientX,t.clientY); }, {passive:true});
+dragZone.addEventListener('touchend', onDragEnd);
+dragZone.addEventListener('mousedown', e=>onDragStart(e.clientX,e.clientY));
+window.addEventListener('mousemove', e=>{ if(dragActive) onDragMove(e.clientX,e.clientY); });
+window.addEventListener('mouseup', onDragEnd);
+
+/* throttle slider */
+const throttleWrap = document.getElementById('throttle-wrap');
+const throttleTrack = document.getElementById('throttle-track');
+const throttleFill = document.getElementById('throttle-fill');
+const throttleHandle = document.getElementById('throttle-handle');
+let throttleDragging=false;
+function setThrottleFromY(clientY){
+  const rect = throttleTrack.getBoundingClientRect();
+  let t = 1 - (clientY - rect.top)/rect.height;
+  t = Math.max(0, Math.min(1,t));
+  state.throttle = t;
+  throttleFill.style.height = (t*100)+'%';
+  throttleHandle.style.bottom = (t*100)+'%';
+}
+throttleTrack.addEventListener('touchstart', e=>{ throttleDragging=true; setThrottleFromY(e.touches[0].clientY); }, {passive:true});
+throttleTrack.addEventListener('touchmove', e=>{ if(throttleDragging) setThrottleFromY(e.touches[0].clientY); }, {passive:true});
+window.addEventListener('touchend', ()=>{ throttleDragging=false; });
+throttleTrack.addEventListener('mousedown', e=>{ throttleDragging=true; setThrottleFromY(e.clientY); });
+window.addEventListener('mousemove', e=>{ if(throttleDragging) setThrottleFromY(e.clientY); });
+window.addEventListener('mouseup', ()=>{ throttleDragging=false; });
+setThrottleFromY(throttleTrack.getBoundingClientRect().bottom); // start at 0
+
+const boostBtn = document.getElementById('boost-btn');
+let boostActive = false;
+
+function activateBoost(){ 
+  boostActive = true;
+  state.boosting = true; 
+}
+
+function deactivateBoost(){
+  boostActive = false;
+  state.boosting = false;
+}
+
+boostBtn.addEventListener('touchstart', e=>{ e.preventDefault(); activateBoost(); }, {passive:false});
+boostBtn.addEventListener('mousedown', activateBoost);
+boostBtn.addEventListener('touchend', e=>{ e.preventDefault(); deactivateBoost(); }, {passive:false});
+boostBtn.addEventListener('touchcancel', e=>{ e.preventDefault(); deactivateBoost(); }, {passive:false});
+boostBtn.addEventListener('mouseup', deactivateBoost);
+document.addEventListener('mouseup', deactivateBoost);
+document.addEventListener('touchend', deactivateBoost);
+document.addEventListener('touchcancel', deactivateBoost);
+
+/* Land button */
+const landBtn = document.getElementById('land-btn');
+landBtn.addEventListener('click', ()=> beginLanding());
+landBtn.addEventListener('touchstart', e=>{ e.preventDefault(); beginLanding(); }, {passive:false});
+
+/* =====================================================================
+   SURFACE MODE : terrain, flora, structures, creatures
+===================================================================== */
+let terrainNoise=null, groundY=0;
+const floraList=[], structureList=[], creatureList=[], ambientAnimList=[];
+
+/* ---- Infinite surface streaming : the ground is generated chunk-by-chunk
+   around the player and unloaded once out of range, the same way deep
+   space only streams in sectors near the ship. terrainHeight() is a pure
+   function of world (x,z) so any chunk, however far out, matches its
+   neighbours seamlessly — there is no edge to the planet. ---- */
+const SURF_CHUNK = 70;          // world units per chunk
+const SURF_RADIUS = 2;          // chunks loaded around the player in each direction (5x5 grid)
+const chunkRegistry = new Map(); // "cx,cz" -> {terrain}
+let lastChunkX=null, lastChunkZ=null;
+
+
+/* ---- Android-style player bot (built from primitives, feet at group origin y=0) ----
+   Each limb is a hip/shoulder pivot Group holding its own joint + foot/hand as
+   children, so rotating the pivot (walk-cycle swing) carries the whole limb with
+   it instead of the foot/hand staying planted while the leg/arm swings past it. */
+function buildAndroidBot(){
+  const g = new THREE.Group();
+  const bodyMat  = new THREE.MeshStandardMaterial({color:0xe8f4ff, metalness:0.75, roughness:0.26});
+  const shellMat = new THREE.MeshStandardMaterial({color:0xb9d2e2, metalness:0.7,  roughness:0.32});
+  const jointMat = new THREE.MeshStandardMaterial({color:0x5ee7ff, metalness:0.3,  roughness:0.3, emissive:0x2a7a8c, emissiveIntensity:0.85});
+  const visorMat = new THREE.MeshBasicMaterial({color:0x5ee7ff});
+  const darkMat  = new THREE.MeshStandardMaterial({color:0x22323d, metalness:0.6,  roughness:0.4});
+
+  // ---- legs: hip pivot (y=0.62) -> thigh -> knee -> shin -> ankle -> foot,
+  // all as children of the pivot so the whole 0.62-unit leg swings as one.
+  function buildLeg(side){
+    const hip = new THREE.Group(); hip.position.set(0.14*side, 0.62, 0);
+    const thighGeo = new THREE.CylinderGeometry(0.1,0.115,0.28,8); thighGeo.translate(0,-0.14,0);
+    const thigh = new THREE.Mesh(thighGeo, bodyMat);
+    const knee = new THREE.Mesh(new THREE.SphereGeometry(0.095,8,8), jointMat); knee.position.y=-0.28;
+    const shinGeo = new THREE.CylinderGeometry(0.085,0.1,0.25,8); shinGeo.translate(0,-0.125,0);
+    const shin = new THREE.Mesh(shinGeo, shellMat); shin.position.y=-0.28;
+    const ankle = new THREE.Mesh(new THREE.SphereGeometry(0.075,8,8), jointMat); ankle.position.y=-0.53;
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.18,0.09,0.28), shellMat); foot.position.set(0,-0.575,0.05);
+    hip.add(thigh,knee,shin,ankle,foot);
+    return hip;
+  }
+  const legL = buildLeg(-1), legR = buildLeg(1);
+  const hipBlock = new THREE.Mesh(new THREE.BoxGeometry(0.34,0.14,0.26), shellMat); hipBlock.position.y=0.62;
+  const hipBelt = new THREE.Mesh(new THREE.TorusGeometry(0.19,0.018,6,20), jointMat);
+  hipBelt.rotation.x = Math.PI/2; hipBelt.position.y = 0.635;
+  g.add(legL,legR,hipBlock,hipBelt);
+
+  // ---- torso: tapered waist into a broader chest, with a glowing core
+  const waist = new THREE.Mesh(new THREE.BoxGeometry(0.32,0.16,0.24), shellMat); waist.position.y = 0.70;
+  const chest = new THREE.Mesh(new THREE.BoxGeometry(0.52,0.46,0.32), bodyMat); chest.position.y = 1.01;
+  const chestRing = new THREE.Mesh(new THREE.TorusGeometry(0.09,0.013,6,20), jointMat); chestRing.position.set(0,1.06,0.165);
+  const chestCore = new THREE.Mesh(new THREE.CircleGeometry(0.065,16), visorMat); chestCore.position.set(0,1.06,0.17);
+  g.add(waist,chest,chestRing,chestCore);
+
+  // ---- arms: shoulder pivot -> pauldron+upper arm -> elbow -> forearm -> hand
+  const shoulderY = 1.16;
+  function buildArm(side){
+    const sh = new THREE.Group(); sh.position.set(0.335*side, shoulderY, 0);
+    const pauldron = new THREE.Mesh(new THREE.SphereGeometry(0.1,8,8), shellMat);
+    const upperGeo = new THREE.CylinderGeometry(0.075,0.07,0.24,8); upperGeo.translate(0,-0.12,0);
+    const upper = new THREE.Mesh(upperGeo, bodyMat);
+    const elbow = new THREE.Mesh(new THREE.SphereGeometry(0.065,8,8), jointMat); elbow.position.y=-0.24;
+    const foreGeo = new THREE.CylinderGeometry(0.06,0.065,0.22,8); foreGeo.translate(0,-0.11,0);
+    const fore = new THREE.Mesh(foreGeo, shellMat); fore.position.y=-0.24;
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.07,8,8), darkMat); hand.position.y=-0.48;
+    sh.add(pauldron,upper,elbow,fore,hand);
+    return sh;
+  }
+  const armL = buildArm(-1), armR = buildArm(1);
+  g.add(armL,armR);
+
+  // ---- head: rounded dome + jaw plate + visor + ear sensors + antenna, all
+  // grouped so the idle/walk head-bob moves the whole face as one piece.
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.065,0.075,0.1,8), jointMat); neck.position.y = 1.29;
+  const headBaseY = 1.47;
+  const head = new THREE.Group(); head.position.y = headBaseY;
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(0.185,16,12), bodyMat); dome.scale.set(1,0.92,1);
+  const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.22,0.08,0.2), shellMat); jaw.position.y=-0.13;
+  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.22,0.09,0.03), visorMat); visor.position.set(0,0.01,0.17);
+  const earL = new THREE.Mesh(new THREE.SphereGeometry(0.035,8,8), jointMat); earL.position.set(-0.19,0,0);
+  const earR = earL.clone(); earR.position.x = 0.19;
+  const antStem = new THREE.Mesh(new THREE.CylinderGeometry(0.014,0.014,0.16,6), shellMat); antStem.position.y=0.26;
+  const antTip = new THREE.Mesh(new THREE.SphereGeometry(0.032,8,8), jointMat); antTip.position.y=0.35;
+  head.add(dome,jaw,visor,earL,earR,antStem,antTip);
+  g.add(neck,head);
+
+  g.userData.legL=legL; g.userData.legR=legR;
+  g.userData.armL=armL; g.userData.armR=armR;
+  g.userData.head=head; g.userData.torso=chest;
+  g.userData.baseY = chest.position.y;
+  g.userData.headBaseY = headBaseY;
+  return g;
+}
+
+const player = new THREE.Group();
+const playerBot = buildAndroidBot();
+player.add(playerBot);
+let playerVelY=0, onGround=true;
+const CHAR_HEIGHT = 0.02;
+
+function terrainHeight(x,z){
+  return terrainNoise(x*0.045, z*0.045)*5.2 + terrainNoise(x*0.14,z*0.14)*1.4;
+}
+
+function disposeObject3D(obj){
+  obj.traverse(o=>{
+    if(o.geometry) o.geometry.dispose();
+    if(o.material){
+      if(Array.isArray(o.material)) o.material.forEach(m=>m.dispose());
+      else o.material.dispose();
+    }
+  });
+}
+
+function landOnPlanet(data){
+  try{
+    // clear everything from a previous planet — dispose GPU geometry/material
+    // buffers first, not just detach from the scene graph, or old planets
+    // leak GPU memory and later landings freeze/crash.
+    // (player and multiplayer ghost avatars are preserved across landings —
+    // they don't belong to any one planet's terrain.)
+    Array.from(surfaceScene.children).forEach(child=>{
+      if(child === player || child.userData.isGhostAvatar) return;
+      disposeObject3D(child);
+      surfaceScene.remove(child);
+    });
+    floraList.length=0; structureList.length=0; creatureList.length=0; ambientAnimList.length=0;
+    chunkRegistry.clear();
+    lastChunkX=null; lastChunkZ=null;
+
+    terrainNoise = makeNoise2D(data.seed ^ 0x1234567);
+
+    // sky / fog / lights — planet-wide, set once
+    surfaceScene.background = data.skyColor;
+    surfaceScene.fog = new THREE.Fog(data.fogColor, 40, 190);
+    surfaceScene.add(new THREE.AmbientLight(0xffffff,0.65));
+    const sun = new THREE.DirectionalLight(0xffffff,0.95);
+    sun.position.set(60,90,40);
+    surfaceScene.add(sun);
+
+    // planet-level traits (flora palette + resident creature species) rolled
+    // once from the planet's seed, so the same kinds of life keep showing up
+    // as the player roams — not a fresh reroll every chunk.
+    const planetRand = mulberry32(hashCoords(data.seed, 0xF10AA));
+    data.floraColor1 = new THREE.Color().setHSL(planetRand(),0.5+planetRand()*0.4,0.4+planetRand()*0.25);
+    data.floraColor2 = data.floraColor1.clone().offsetHSL((planetRand()-0.5)*0.15,0,0.15);
+    data.bioluminescent = planetRand()<0.35;
+    const speciesCount = 3+Math.floor(planetRand()*4);
+    data.speciesRoster = [];
+    for(let s=0;s<speciesCount;s++){
+      const archetype = planetRand()<0.15 ? Math.floor(planetRand()*CREATURE_ARCHETYPE_COUNT) : data.creatureStyle;
+      data.speciesRoster.push(randomCreatureSpec(planetRand, archetype));
+    }
+
+    // place player near origin, then stream in the chunks around them
+    const startY = terrainHeight(0,4);
+    player.position.set(0,startY+CHAR_HEIGHT,4);
+    surfaceScene.add(player);
+    playerVelY=0;
+
+    updateSurfaceChunks(true);
+  }catch(e){
+    console.error('Critical landOnPlanet error:', e);
+    // Fallback: at least add basic flat terrain so the player isn't stuck in a black void
+    const geo = new THREE.PlaneGeometry(260,260,20,20);
+    geo.rotateX(-Math.PI/2);
+    const mat = new THREE.MeshStandardMaterial({color: data.terrainColor || 0x336633});
+    const terrain = new THREE.Mesh(geo, mat);
+    surfaceScene.add(terrain);
+    surfaceScene.background = data.skyColor || new THREE.Color(0x87ceeb);
+    player.position.set(0,0,0);
+    surfaceScene.add(player);
+  }
+}
+
+/* Stream chunks in/out around the player. Called every frame but only
+   does work when the player has actually crossed into a new chunk. */
+function updateSurfaceChunks(force){
+  if(!state.currentPlanet) return;
+  const data = state.currentPlanet;
+  const pcx = Math.floor(player.position.x/SURF_CHUNK), pcz = Math.floor(player.position.z/SURF_CHUNK);
+  if(!force && pcx===lastChunkX && pcz===lastChunkZ) return;
+  lastChunkX=pcx; lastChunkZ=pcz;
+
+  const needed = new Set();
+  for(let dx=-SURF_RADIUS; dx<=SURF_RADIUS; dx++){
+    for(let dz=-SURF_RADIUS; dz<=SURF_RADIUS; dz++){
+      const cx=pcx+dx, cz=pcz+dz, key=cx+','+cz;
+      needed.add(key);
+      if(!chunkRegistry.has(key)) buildSurfaceChunk(data, cx, cz, key);
+    }
+  }
+  for(const key of Array.from(chunkRegistry.keys())){
+    if(!needed.has(key)) unloadSurfaceChunk(key);
+  }
+}
+
+function rebuildAllSurfaceChunks(){
+  for(const key of Array.from(chunkRegistry.keys())) unloadSurfaceChunk(key);
+  updateSurfaceChunks(true);
+}
+
+function unloadSurfaceChunk(key){
+  const chunk = chunkRegistry.get(key);
+  if(!chunk) return;
+  if(chunk.terrain){ disposeObject3D(chunk.terrain); surfaceScene.remove(chunk.terrain); }
+  for(let i=floraList.length-1;i>=0;i--){ if(floraList[i].userData._chunk===key){ disposeObject3D(floraList[i]); surfaceScene.remove(floraList[i]); floraList.splice(i,1); } }
+  for(let i=structureList.length-1;i>=0;i--){ if(structureList[i].userData._chunk===key){ disposeObject3D(structureList[i]); surfaceScene.remove(structureList[i]); structureList.splice(i,1); } }
+  for(let i=creatureList.length-1;i>=0;i--){ if(creatureList[i].userData._chunk===key){ disposeObject3D(creatureList[i]); surfaceScene.remove(creatureList[i]); creatureList.splice(i,1); } }
+  for(let i=ambientAnimList.length-1;i>=0;i--){ if(ambientAnimList[i]._chunk===key) ambientAnimList.splice(i,1); }
+  chunkRegistry.delete(key);
+}
+
+function buildSurfaceChunk(data, cx, cz, key){
+  try{
+    const worldCx = cx*SURF_CHUNK, worldCz = cz*SURF_CHUNK;
+    const G = GFX[state.gfx];
+    const segs = Math.max(6, Math.round(G.segs/3));
+
+    // ---- terrain patch ----
+    const geo = new THREE.PlaneGeometry(SURF_CHUNK, SURF_CHUNK, segs, segs);
+    geo.rotateX(-Math.PI/2);
+    const posAttr = geo.attributes.position;
+    const colors=[];
+    const baseC = data.terrainColor;
+    for(let i=0;i<posAttr.count;i++){
+      const lx=posAttr.getX(i), lz=posAttr.getZ(i);
+      const wx=lx+worldCx, wz=lz+worldCz;
+      const h = terrainHeight(wx,wz);
+      posAttr.setY(i,h);
+      const shade = 0.75 + terrainNoise(wx*0.2,wz*0.2)*0.25;
+      const c = baseC.clone().multiplyScalar(shade);
+      colors.push(c.r,c.g,c.b);
+    }
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors,3));
+    geo.computeVertexNormals();
+    const mat = new THREE.MeshStandardMaterial({vertexColors:true, roughness:0.95});
+    const terrain = new THREE.Mesh(geo, mat);
+    terrain.position.set(worldCx,0,worldCz);
+    surfaceScene.add(terrain);
+
+    const chunk = {terrain};
+    chunkRegistry.set(key, chunk);
+
+    // chunk-local deterministic RNG — same chunk always regenerates the same content
+    const rand = mulberry32(hashCoords(data.seed, cx, cz, 0xABCDEF));
+
+    // ---- flora : loose "grove" clustering within the chunk so ground reads
+    // as covered terrain with occasional clearings, not sparse scatter ----
+    const floraCount = Math.max(0, Math.round(G.floraPerChunk*(0.5+rand()*1.0)));
+    const clusterCount = 1+Math.floor(rand()*3);
+    const clusters=[];
+    for(let i=0;i<clusterCount;i++){
+      clusters.push({x:(rand()-0.5)*SURF_CHUNK*0.8, z:(rand()-0.5)*SURF_CHUNK*0.8, r:8+rand()*16});
+    }
+    for(let i=0;i<floraCount;i++){
+      try{
+        let lx,lz;
+        if(rand()<0.8 && clusters.length){
+          const cl = clusters[Math.floor(rand()*clusters.length)];
+          const ang=rand()*Math.PI*2, rad=Math.pow(rand(),0.6)*cl.r;
+          lx = cl.x+Math.cos(ang)*rad; lz = cl.z+Math.sin(ang)*rad;
+        } else {
+          lx=(rand()-0.5)*SURF_CHUNK*0.95; lz=(rand()-0.5)*SURF_CHUNK*0.95;
+        }
+        const wx=lx+worldCx, wz=lz+worldCz;
+        const py = terrainHeight(wx,wz);
+        const arch = rand()<0.12 ? Math.floor(rand()*6) : data.floraStyle;
+        const plant = proceduralPlant(rand, arch, data.floraColor1, data.floraColor2, data.bioluminescent);
+        plant.position.set(wx,py,wz);
+        plant.rotation.y = rand()*Math.PI*2;
+        plant.scale.setScalar(0.7+rand()*0.7);
+        plant.userData._chunk = key;
+        surfaceScene.add(plant);
+        floraList.push(plant);
+      }catch(e){ console.warn('Flora generation error:', e); }
+    }
+
+    // ---- structures ----
+    const structCount = Math.floor(G.structPerChunk) + (rand()<(G.structPerChunk%1) ? 1 : 0);
+    for(let i=0;i<structCount;i++){
+      try{
+        const lx=(rand()-0.5)*SURF_CHUNK*0.9, lz=(rand()-0.5)*SURF_CHUNK*0.9;
+        const wx=lx+worldCx, wz=lz+worldCz;
+        const py=terrainHeight(wx,wz);
+        const isArtificial = rand()<0.4;
+        const beforeAmbient = ambientAnimList.length;
+        const s = isArtificial ? proceduralArtificialStructure(rand,data.structStyle) : proceduralNaturalStructure(rand,data.terrainColor);
+        for(let ai=beforeAmbient; ai<ambientAnimList.length; ai++) ambientAnimList[ai]._chunk = key;
+        s.position.set(wx,py,wz);
+        s.rotation.y = rand()*Math.PI*2;
+        s.userData._chunk = key;
+        surfaceScene.add(s);
+        structureList.push(s);
+      }catch(e){ console.warn('Structure generation error:', e); }
+    }
+
+    // ---- creatures : drawn from this planet's resident species roster,
+    // so the same kinds of animals keep turning up as the player explores ----
+    const roster = data.speciesRoster || [];
+    if(roster.length && rand()<0.85){
+      const pickCount = 1+Math.floor(rand()*2);
+      for(let p=0;p<pickCount;p++){
+        try{
+          const spec = roster[Math.floor(rand()*roster.length)];
+          const instances = Math.max(1, Math.round(G.creaturesPerChunk/pickCount));
+          for(let i=0;i<instances;i++){
+            const c = buildCreature(spec);
+            if(!c) continue;
+            const lx=(rand()-0.5)*SURF_CHUNK*0.9, lz=(rand()-0.5)*SURF_CHUNK*0.9;
+            const wx=lx+worldCx, wz=lz+worldCz;
+            c.position.set(wx, terrainHeight(wx,wz), wz);
+            c.userData.wanderAngle = rand()*Math.PI*2;
+            c.userData.speed = spec.speed;
+            c.userData.phase = rand()*10;
+            c.userData._chunk = key;
+            surfaceScene.add(c);
+            creatureList.push(c);
+          }
+        }catch(e){ console.warn('Creature instance error:', e); }
+      }
+    }
+  }catch(e){
+    console.error('buildSurfaceChunk error:', e);
+  }
+}
+
+/* =====================================================================
+   FLORA : six fundamentally different growth archetypes, chosen per
+   planet by seed. "Anything can exist, in any form" — shape, branching
+   topology, and silhouette differ completely between archetypes, not
+   just color/size.
+===================================================================== */
+function proceduralPlant(rand, archetype, c1, c2, glow){
+  const g = new THREE.Group();
+  const headMat = new THREE.MeshStandardMaterial({
+    color:c1, roughness:0.55,
+    emissive: glow ? c1 : 0x000000, emissiveIntensity: glow?0.9:0
+  });
+  const stemMat = new THREE.MeshStandardMaterial({color:c2.clone().multiplyScalar(0.6), roughness:0.9});
+
+  if(archetype===0){
+    // Classic branching tree
+    const trunkH = 0.6 + rand()*2.6;
+    const trunkR = 0.05 + rand()*0.14;
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(trunkR*0.6,trunkR,trunkH,6), stemMat);
+    trunk.position.y = trunkH/2;
+    g.add(trunk);
+    const headType = Math.floor(rand()*4);
+    const branchCount = 1 + Math.floor(rand()*5);
+    for(let i=0;i<branchCount;i++){
+      let headGeo; const hs = 0.25+rand()*0.55;
+      if(headType===0) headGeo = new THREE.SphereGeometry(hs,7,7);
+      else if(headType===1) headGeo = new THREE.ConeGeometry(hs,hs*1.8,6);
+      else if(headType===2) headGeo = new THREE.IcosahedronGeometry(hs,0);
+      else headGeo = new THREE.TorusGeometry(hs,hs*0.35,6,10);
+      const head = new THREE.Mesh(headGeo, headMat);
+      const ang = rand()*Math.PI*2, rad = branchCount>1? rand()*trunkH*0.35 : 0;
+      head.position.set(Math.cos(ang)*rad, trunkH+rand()*hs*0.5, Math.sin(ang)*rad);
+      head.rotation.set(rand()*Math.PI,rand()*Math.PI,rand()*Math.PI);
+      g.add(head);
+    }
+  }
+  else if(archetype===1){
+    // Crystalline spike cluster — no trunk, jagged glowing shards from the ground
+    const spikeMat = new THREE.MeshStandardMaterial({
+      color:c1, roughness:0.1, metalness:0.4, transparent:true, opacity:0.88,
+      emissive:c1, emissiveIntensity:0.6
+    });
+    const count = 3+Math.floor(rand()*7);
+    for(let i=0;i<count;i++){
+      const h = 0.5+rand()*2.2, r = 0.06+rand()*0.16;
+      const spike = new THREE.Mesh(new THREE.ConeGeometry(r,h,5), spikeMat);
+      const ang = rand()*Math.PI*2, rad = rand()*0.5;
+      spike.position.set(Math.cos(ang)*rad, h/2, Math.sin(ang)*rad);
+      spike.rotation.z = (rand()-0.5)*0.5;
+      spike.rotation.x = (rand()-0.5)*0.5;
+      g.add(spike);
+    }
+  }
+  else if(archetype===2){
+    // Mushroom / fungal — stem + wide flat cap, spotted
+    const stemH = 0.3+rand()*1.1, stemR = 0.06+rand()*0.1;
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(stemR,stemR*1.3,stemH,7), stemMat);
+    stem.position.y = stemH/2;
+    g.add(stem);
+    const capR = 0.35+rand()*0.9;
+    const capGeo = rand()<0.5
+      ? new THREE.SphereGeometry(capR,10,6,0,Math.PI*2,0,Math.PI/2.1)
+      : new THREE.ConeGeometry(capR,capR*0.8,10);
+    const cap = new THREE.Mesh(capGeo, headMat);
+    cap.position.y = stemH;
+    if(capGeo.type==='ConeGeometry') cap.rotation.x = Math.PI;
+    g.add(cap);
+    if(rand()<0.5+ (glow?0.3:0)){
+      const spotMat = new THREE.MeshBasicMaterial({color: glow? c1: 0xffffff});
+      const spots = 3+Math.floor(rand()*5);
+      for(let i=0;i<spots;i++){
+        const sp = new THREE.Mesh(new THREE.SphereGeometry(capR*0.08,5,5), spotMat);
+        const ang=rand()*Math.PI*2, rad=rand()*capR*0.7;
+        sp.position.set(Math.cos(ang)*rad, stemH+capR*0.35, Math.sin(ang)*rad);
+        g.add(sp);
+      }
+    }
+  }
+  else if(archetype===3){
+    // Vine / tentacle — chained, curving tapered segments reaching outward
+    const segCount = 4+Math.floor(rand()*5);
+    let cursor = new THREE.Object3D();
+    cursor.position.set(0,0,0);
+    let curAngX = -0.3-rand()*0.5, curAngZ=(rand()-0.5)*0.6;
+    const segLen = 0.35+rand()*0.35;
+    let parent = g;
+    let baseR = 0.09+rand()*0.08;
+    for(let i=0;i<segCount;i++){
+      const r0 = baseR*(1-i/segCount*0.7);
+      const seg = new THREE.Mesh(new THREE.CylinderGeometry(r0*0.7,r0,segLen,6), stemMat);
+      seg.position.y = segLen/2;
+      const holder = new THREE.Object3D();
+      holder.add(seg);
+      holder.rotation.x = curAngX;
+      holder.rotation.z = curAngZ;
+      parent.add(holder);
+      const tip = new THREE.Object3D();
+      tip.position.y = segLen;
+      seg.add(tip);
+      parent = tip;
+      curAngX += (rand()-0.3)*0.4;
+      curAngZ += (rand()-0.5)*0.35;
+    }
+    const tipBulb = new THREE.Mesh(new THREE.SphereGeometry(baseR*1.6,7,7), headMat);
+    parent.add(tipBulb);
+  }
+  else if(archetype===4){
+    // Floating orb cluster — thin stem with spheres orbiting/hovering at intervals
+    const stemH = 0.8+rand()*1.8;
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.04,stemH,5), stemMat);
+    stem.position.y = stemH/2;
+    g.add(stem);
+    const orbMat = new THREE.MeshStandardMaterial({color:c1, roughness:0.3, emissive:glow?c1:0x000000, emissiveIntensity:glow?1.0:0});
+    const orbCount = 2+Math.floor(rand()*4);
+    const orbs=[];
+    for(let i=0;i<orbCount;i++){
+      const or_ = 0.1+rand()*0.22;
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(or_,8,8), orbMat);
+      const h = stemH*(0.3+ (i/orbCount)*0.8);
+      const rad = 0.15+rand()*0.3;
+      const ang = rand()*Math.PI*2;
+      orb.position.set(Math.cos(ang)*rad, h, Math.sin(ang)*rad);
+      g.add(orb);
+      orbs.push(orb);
+    }
+    ambientAnimList.push({type:'orbs', group:g, orbs, phase:rand()*10, freq:0.8+rand()*1.2});
+  }
+  else {
+    // Coral / branching fan — flat radiating fingers, reef-like
+    const fingerMat = new THREE.MeshStandardMaterial({color:c1, roughness:0.5, emissive:glow?c1:0x000000, emissiveIntensity:glow?0.5:0});
+    const base = new THREE.Mesh(new THREE.SphereGeometry(0.15,6,6), fingerMat);
+    g.add(base);
+    const fingerCount = 4+Math.floor(rand()*8);
+    for(let i=0;i<fingerCount;i++){
+      const len = 0.4+rand()*1.3;
+      const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.08,len,5), fingerMat);
+      finger.geometry.translate(0,len/2,0);
+      const ang = rand()*Math.PI*2;
+      const tilt = 0.3+rand()*0.7;
+      finger.position.set(0,0.1,0);
+      finger.rotation.z = Math.cos(ang)*tilt;
+      finger.rotation.x = Math.sin(ang)*tilt;
+      g.add(finger);
+    }
+  }
+  const scale = 0.6 + rand()*1.2;
+  g.scale.setScalar(scale);
+  return g;
+}
+
+/* =====================================================================
+   NATURAL STRUCTURES : rocks, crystal clusters, arches, spires, hovering shards
+===================================================================== */
+function proceduralNaturalStructure(rand, terrainColor){
+  const g = new THREE.Group();
+  const archetype = Math.floor(rand()*5);
+  const isCrystal = archetype===1 || archetype===4;
+  const baseColor = isCrystal
+    ? new THREE.Color().setHSL(rand(),0.7,0.6)
+    : terrainColor.clone().multiplyScalar(0.7+rand()*0.5);
+  const mat = new THREE.MeshStandardMaterial({
+    color: baseColor, roughness: isCrystal?0.15:0.9, metalness: isCrystal?0.3:0,
+    transparent:isCrystal, opacity:isCrystal?0.85:1,
+    emissive:isCrystal?baseColor:0x000000, emissiveIntensity:isCrystal?0.35:0
+  });
+
+  if(archetype===0){
+    // rock cluster
+    const count = 2+Math.floor(rand()*5);
+    for(let i=0;i<count;i++){
+      const size=0.4+rand()*1.6;
+      const m = new THREE.Mesh(new THREE.DodecahedronGeometry(size,0), mat);
+      m.position.set((rand()-0.5)*2.2, size*0.5, (rand()-0.5)*2.2);
+      m.rotation.set(rand()*Math.PI,rand()*Math.PI,rand()*Math.PI);
+      g.add(m);
+    }
+  } else if(archetype===1){
+    // crystal spike cluster
+    const count = 3+Math.floor(rand()*6);
+    for(let i=0;i<count;i++){
+      const size=0.4+rand()*1.6;
+      const m = new THREE.Mesh(new THREE.ConeGeometry(size*0.4,size*2,5), mat);
+      m.position.set((rand()-0.5)*2.2, size, (rand()-0.5)*2.2);
+      m.rotation.set(rand()*Math.PI,rand()*Math.PI,rand()*Math.PI);
+      g.add(m);
+    }
+  } else if(archetype===2){
+    // natural arch
+    const r = 1.4+rand()*1.6, tube=0.2+rand()*0.3;
+    const arch = new THREE.Mesh(new THREE.TorusGeometry(r,tube,8,16,Math.PI), mat);
+    arch.rotation.z = Math.PI;
+    arch.position.y = r;
+    g.add(arch);
+  } else if(archetype===3){
+    // spire — stacked tapering segments
+    const segs = 3+Math.floor(rand()*4);
+    let y=0;
+    for(let i=0;i<segs;i++){
+      const h=0.6+rand()*1.1, r0=(0.6-i*0.12)*(0.4+rand()*0.3);
+      const seg = new THREE.Mesh(new THREE.CylinderGeometry(Math.max(0.05,r0*0.6),Math.max(0.08,r0),h,7), mat);
+      seg.position.y = y+h/2;
+      g.add(seg);
+      y += h*0.85;
+    }
+  } else {
+    // hovering shard cluster (slowly rotating, offset above ground)
+    const count = 3+Math.floor(rand()*4);
+    const shards=[];
+    for(let i=0;i<count;i++){
+      const size=0.3+rand()*0.7;
+      const m = new THREE.Mesh(new THREE.OctahedronGeometry(size,0), mat);
+      m.position.set((rand()-0.5)*1.8, 1.2+rand()*1.6, (rand()-0.5)*1.8);
+      g.add(m);
+      shards.push(m);
+    }
+    ambientAnimList.push({type:'shards', group:g, shards, phase:rand()*10, freq:0.4+rand()*0.6});
+  }
+  return g;
+}
+
+/* =====================================================================
+   ARTIFICIAL STRUCTURES : ruins, monoliths, domes, ringed towers
+===================================================================== */
+function proceduralArtificialStructure(rand, style){
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({color:new THREE.Color().setHSL(rand(),0.15,0.35+rand()*0.2), metalness:0.7, roughness:0.4});
+  const glowMat = new THREE.MeshBasicMaterial({color:new THREE.Color().setHSL(rand(),0.8,0.6)});
+  const archetype = style % 4;
+
+  if(archetype===0){
+    // monolith
+    const h = 3+rand()*5;
+    const mono = new THREE.Mesh(new THREE.BoxGeometry(1.2,h,0.6), mat);
+    mono.position.y = h/2;
+    mono.rotation.y = rand()*0.4;
+    g.add(mono);
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.25,0.12,0.65), glowMat);
+    stripe.position.y = h*0.7;
+    g.add(stripe);
+  } else if(archetype===1){
+    // ring ruin
+    const segs = 5+Math.floor(rand()*4);
+    for(let i=0;i<segs;i++){
+      const ang=(i/segs)*Math.PI*2, rad=1.6+rand()*0.6, pillarH=1.2+rand()*2.2;
+      const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.22,pillarH,6), mat);
+      pillar.position.set(Math.cos(ang)*rad, pillarH/2, Math.sin(ang)*rad);
+      g.add(pillar);
+    }
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.6,0), glowMat);
+    core.position.y = 1.4;
+    g.add(core);
+  } else if(archetype===2){
+    // geodesic dome outpost
+    const domeR = 1.2+rand()*1.4;
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(domeR,10,6,0,Math.PI*2,0,Math.PI/2), mat);
+    g.add(dome);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(domeR*1.02,0.06,6,20), glowMat);
+    ring.rotation.x = Math.PI/2;
+    g.add(ring);
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.12,8,8), glowMat);
+    beacon.position.y = domeR+0.15;
+    g.add(beacon);
+  } else {
+    // ringed tower
+    const h = 3+rand()*4;
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.24,h,8), mat);
+    pole.position.y = h/2;
+    g.add(pole);
+    const ringCount = 2+Math.floor(rand()*3);
+    for(let i=0;i<ringCount;i++){
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.5+rand()*0.4,0.06,6,16), glowMat);
+      ring.rotation.x = Math.PI/2;
+      ring.position.y = h*(0.3+ i*0.6/ringCount);
+      g.add(ring);
+    }
+  }
+  return g;
+}
+
+/* =====================================================================
+   CREATURES : 14 base body plans / locomotion systems (quadruped, biped,
+   flyer, serpent, insectoid, floater, blob, crab, hydra, jelly, tripod,
+   sessile, worm, centipede) each combined with one of ~8 decorative kits
+   (horns, spines, extra eyes, frills, shell plating, bioluminescent
+   stripes, tendrils...) for CREATURE_ARCHETYPE_COUNT = 100 total body
+   plans. A planet leans toward one dominant archetype (data.creatureStyle)
+   with rare oddball species from another archetype — so different worlds
+   are home to visibly different kinds of life, while every individual of
+   one species still shares that species' body plan and gait (only
+   color/size/proportion vary), the way real animals of a kind do.
+===================================================================== */
+function randomCreatureSpec(rand, archetype){
+  return {
+    archetype,
+    color: new THREE.Color().setHSL(rand(),0.55+rand()*0.35,0.4+rand()*0.3),
+    accent: new THREE.Color().setHSL(rand(),0.7,0.6),
+    size: 0.35+rand()*1.1,
+    speed: 0.6+rand()*2.2,
+    bobFreq: 2+rand()*4,
+    glow: rand()<0.4,
+    // morphology, rolled once per species so every instance matches
+    bodyLenMul: 1.2+rand()*0.6,
+    headShape: rand()<0.5 ? 0 : 1,
+    hasTail: rand()<0.6,
+    tailLen: 0.6+rand()*0.6,
+    earCount: rand()<0.5 ? 2 : 0,
+    legCount: 4+Math.floor(rand()*3)*2,   // insectoid: 4 / 6 / 8
+    segCount: 4+Math.floor(rand()*5),     // serpent / centipede segments
+    wingSpan: 0.6+rand()*0.9,
+    hoverHeight: 1.0+rand()*2.2,
+    satCount: 2+Math.floor(rand()*4),
+    bumpCount: 2+Math.floor(rand()*4),
+    soundFreq: 80+rand()*320,
+    soundType: Math.floor(rand()*4),
+    // extra morphology for the newer archetypes (crab / hydra / jelly / tripod / sessile / worm / centipede)
+    clawSize: 0.5+rand()*0.6,
+    headCount: 1+Math.floor(rand()*3),        // hydra
+    neckLen: 0.5+rand()*0.7,                  // hydra
+    tentacleCount: 4+Math.floor(rand()*5),    // jelly
+    tentacleLen: 0.9+rand()*1.1,              // jelly
+    domeWidth: 0.8+rand()*0.6,                // jelly
+    legLen3: 0.8+rand()*0.6,                  // tripod
+    stalkLen: 1.0+rand()*1.6,                 // sessile
+    petalCount: 4+Math.floor(rand()*5),       // sessile
+    wormLen: 1.6+rand()*1.4,                  // worm
+    centLegPairs: 5+Math.floor(rand()*6),     // centipede
+  };
+}
+
+function makeCreatureMat(spec, useAccent){
+  const c = useAccent ? spec.accent : spec.color;
+  return new THREE.MeshStandardMaterial({
+    color:c, roughness:0.4+Math.random()*0.4, metalness:Math.random()*0.3,
+    emissive: spec.glow?c:0x000000, emissiveIntensity: spec.glow?0.5:0
+  });
+}
+
+function buildQuadruped(spec){
+  const g = new THREE.Group();
+  const s = spec.size;
+  const bodyMat = makeCreatureMat(spec,false);
+  const accMat = makeCreatureMat(spec,true);
+  const bodyLen = s*spec.bodyLenMul, bodyH = s*0.55, bodyW = s*0.5;
+  const hipH = bodyH*0.9 + s*0.3;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(bodyW,bodyH,bodyLen), bodyMat);
+  body.position.y = hipH;
+  g.add(body);
+  const headGeo = spec.headShape===0 ? new THREE.BoxGeometry(s*0.4,s*0.35,s*0.45) : new THREE.SphereGeometry(s*0.28,7,7);
+  const head = new THREE.Mesh(headGeo, bodyMat);
+  head.position.set(0, hipH+bodyH*0.15, bodyLen*0.5+s*0.25);
+  g.add(head);
+  if(spec.hasTail){
+    const tail = new THREE.Mesh(new THREE.ConeGeometry(s*0.08,s*spec.tailLen,5), accMat);
+    tail.position.set(0,hipH,-bodyLen*0.5-s*0.1);
+    tail.rotation.x = Math.PI/2 + 0.3;
+    g.add(tail);
+  }
+  const legGeo = new THREE.CylinderGeometry(s*0.06,s*0.08,hipH,6);
+  legGeo.translate(0,-hipH/2,0);
+  const legs=[];
+  const legXs=[-bodyW*0.45, bodyW*0.45], legZs=[bodyLen*0.35,-bodyLen*0.35];
+  for(const lz of legZs) for(const lx of legXs){
+    const leg = new THREE.Mesh(legGeo, bodyMat);
+    leg.position.set(lx,hipH,lz);
+    g.add(leg);
+    legs.push({mesh:leg, front:lz>0, left:lx<0});
+  }
+  g.userData = {spec, archetype:0, legs, wanderAngle:0};
+  return g;
+}
+
+function buildBiped(spec){
+  const g = new THREE.Group();
+  const s = spec.size;
+  const bodyMat = makeCreatureMat(spec,false);
+  const accMat = makeCreatureMat(spec,true);
+  const hipH = s*0.9;
+  const body = new THREE.Mesh(new THREE.SphereGeometry(s*0.42,8,8), bodyMat);
+  body.position.y = hipH+s*0.4;
+  g.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(s*0.26,8,8), accMat);
+  head.position.y = hipH+s*0.9;
+  g.add(head);
+  for(let i=0;i<spec.earCount;i++){
+    const ear = new THREE.Mesh(new THREE.ConeGeometry(s*0.07,s*0.25,5), accMat);
+    ear.position.set((i?1:-1)*s*0.15, head.position.y+s*0.28, 0);
+    g.add(ear);
+  }
+  const legGeo = new THREE.CylinderGeometry(s*0.1,s*0.13,hipH,6);
+  legGeo.translate(0,-hipH/2,0);
+  const legs=[];
+  for(const lx of [-s*0.16,s*0.16]){
+    const leg = new THREE.Mesh(legGeo, bodyMat);
+    leg.position.set(lx,hipH,0);
+    g.add(leg);
+    legs.push({mesh:leg, left:lx<0});
+  }
+  const armGeo = new THREE.CylinderGeometry(s*0.05,s*0.06,s*0.55,6);
+  armGeo.translate(0,-s*0.27,0);
+  const arms=[];
+  for(const ax of [-1,1]){
+    const arm = new THREE.Mesh(armGeo, bodyMat);
+    arm.position.set(ax*s*0.42, hipH+s*0.65, 0);
+    g.add(arm);
+    arms.push({mesh:arm, left:ax<0});
+  }
+  g.userData = {spec, archetype:1, body, legs, arms, wanderAngle:0};
+  return g;
+}
+
+function buildFlyer(spec){
+  const g = new THREE.Group();
+  const s = spec.size;
+  const bodyMat = makeCreatureMat(spec,false);
+  const accMat = makeCreatureMat(spec,true);
+  const body = new THREE.Mesh(new THREE.SphereGeometry(s*0.3,8,8), bodyMat);
+  body.scale.set(0.8,0.8,1.6);
+  g.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(s*0.18,7,7), accMat);
+  head.position.z = s*0.5;
+  g.add(head);
+  const wingGeo = new THREE.PlaneGeometry(spec.wingSpan*s, s*0.5, 3,1);
+  const wingMat = new THREE.MeshStandardMaterial({color:spec.accent, roughness:0.5, side:THREE.DoubleSide, transparent:true, opacity:0.85, emissive:spec.glow?spec.accent:0x000000, emissiveIntensity:spec.glow?0.6:0});
+  const wingL = new THREE.Mesh(wingGeo, wingMat); wingL.position.x = -spec.wingSpan*s*0.5;
+  const wingR = new THREE.Mesh(wingGeo, wingMat); wingR.position.x = spec.wingSpan*s*0.5;
+  const wingPivotL = new THREE.Object3D(); wingPivotL.add(wingL);
+  const wingPivotR = new THREE.Object3D(); wingPivotR.add(wingR);
+  g.add(wingPivotL, wingPivotR);
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(s*0.06,s*0.5,4), bodyMat);
+  tail.position.z = -s*0.55; tail.rotation.x = -Math.PI/2;
+  g.add(tail);
+  g.userData = {spec, archetype:2, wingPivotL, wingPivotR, wanderAngle:0};
+  return g;
+}
+
+function buildSerpent(spec){
+  const g = new THREE.Group();
+  const s = spec.size;
+  const mat = makeCreatureMat(spec,false);
+  const accMat = makeCreatureMat(spec,true);
+  const segCount = spec.segCount;
+  const segLen = s*0.5;
+  const segments=[];
+  let parent = g, r0 = s*0.28;
+  for(let i=0;i<segCount;i++){
+    const r = r0*(1-i/segCount*0.75);
+    const seg = new THREE.Mesh(new THREE.CylinderGeometry(Math.max(0.01,r*0.85),Math.max(0.01,r),segLen,7), mat);
+    seg.rotation.x = Math.PI/2;
+    seg.position.z = segLen/2;
+    const holder = new THREE.Object3D();
+    holder.add(seg);
+    parent.add(holder);
+    const tip = new THREE.Object3D();
+    tip.position.z = segLen;
+    seg.add(tip);
+    segments.push({holder});
+    parent = tip;
+  }
+  const head = new THREE.Mesh(new THREE.ConeGeometry(r0*1.1,r0*1.6,6), accMat);
+  head.rotation.x = -Math.PI/2;
+  head.position.z = -segLen*0.3;
+  g.add(head);
+  g.userData = {spec, archetype:3, segments, wanderAngle:0};
+  return g;
+}
+
+function buildInsectoid(spec){
+  const g = new THREE.Group();
+  const s = spec.size*0.8;
+  const mat = makeCreatureMat(spec,false);
+  const accMat = makeCreatureMat(spec,true);
+  const body = new THREE.Mesh(new THREE.OctahedronGeometry(s*0.4,0), mat);
+  body.position.y = s*0.35;
+  body.scale.set(1,0.7,1.6);
+  g.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(s*0.2,6,6), accMat);
+  head.position.set(0,s*0.4,s*0.5);
+  g.add(head);
+  for(const side of [-1,1]){
+    const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.014,s*0.5,4), accMat);
+    ant.position.set(side*s*0.08, s*0.62, s*0.6);
+    ant.rotation.x = -0.6; ant.rotation.z = side*0.3;
+    g.add(ant);
+  }
+  const legCount = spec.legCount;
+  const legGeo = new THREE.CylinderGeometry(s*0.03,s*0.04,s*0.55,4);
+  legGeo.translate(0,-s*0.27,0);
+  const legs=[];
+  const pairCount = legCount/2;
+  for(let i=0;i<legCount;i++){
+    const pair = Math.floor(i/2), side = i%2===0?-1:1;
+    const leg = new THREE.Mesh(legGeo, mat);
+    const lz = s*(0.35 - pair*(0.7/Math.max(1,pairCount-1)));
+    leg.position.set(side*s*0.35, s*0.35, lz);
+    leg.rotation.z = side*0.5;
+    g.add(leg);
+    legs.push({mesh:leg, tripod:(pair+(side<0?0:1))%2, baseY:s*0.35});
+  }
+  g.userData = {spec, archetype:4, legs, wanderAngle:0};
+  return g;
+}
+
+function buildFloater(spec){
+  const g = new THREE.Group();
+  const s = spec.size;
+  const coreMat = makeCreatureMat(spec,false);
+  const satMat = makeCreatureMat(spec,true);
+  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(s*0.35,1), coreMat);
+  g.add(core);
+  const sats=[];
+  const satCount = spec.satCount;
+  for(let i=0;i<satCount;i++){
+    const sr = s*(0.08+(i%3)*0.05);
+    const sat = new THREE.Mesh(new THREE.SphereGeometry(sr,7,7), satMat);
+    const orbitR = s*(0.5+(i/satCount)*0.5);
+    sats.push({mesh:sat, orbitR, orbitSpeed:0.6+i*0.3, phase:i*(Math.PI*2/satCount)});
+    g.add(sat);
+  }
+  g.userData = {spec, archetype:5, core, sats, wanderAngle:0};
+  return g;
+}
+
+function buildBlob(spec){
+  const g = new THREE.Group();
+  const s = spec.size;
+  const mat = makeCreatureMat(spec,false);
+  const accMat = makeCreatureMat(spec,true);
+  const body = new THREE.Mesh(new THREE.IcosahedronGeometry(s*0.45,1), mat);
+  g.add(body);
+  const bumps=[];
+  const bumpCount = spec.bumpCount;
+  for(let i=0;i<bumpCount;i++){
+    const br = s*(0.1+(i%3)*0.05);
+    const bump = new THREE.Mesh(new THREE.SphereGeometry(br,6,6), i%3===0?accMat:mat);
+    const ang = (i/bumpCount)*Math.PI*2, elev = 0.3;
+    bump.position.set(Math.cos(ang)*Math.cos(elev)*s*0.4, Math.sin(elev)*s*0.4+s*0.1, Math.sin(ang)*Math.cos(elev)*s*0.4);
+    g.add(bump);
+    bumps.push({mesh:bump, basePos:bump.position.clone(), phase:i*0.8});
+  }
+  g.userData = {spec, archetype:6, body, bumps, wanderAngle:0};
+  return g;
+}
+
+function buildCrab(spec){
+  const g = new THREE.Group();
+  const s = spec.size;
+  const mat = makeCreatureMat(spec,false);
+  const accMat = makeCreatureMat(spec,true);
+  const bodyH = s*0.4;
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(s*0.55,s*0.6,bodyH,8), mat);
+  body.position.y = s*0.35;
+  g.add(body);
+  for(const side of [-1,1]){
+    const armGeo = new THREE.CylinderGeometry(s*0.06,s*0.08,s*0.5,5);
+    const arm = new THREE.Mesh(armGeo, mat);
+    arm.position.set(side*s*0.7, s*0.4, s*0.35);
+    arm.rotation.z = side*0.9;
+    g.add(arm);
+    const claw = new THREE.Mesh(new THREE.DodecahedronGeometry(spec.clawSize*s*0.28,0), accMat);
+    claw.position.set(side*s*1.0, s*0.4, s*0.6);
+    g.add(claw);
+  }
+  const legCount = spec.legCount;
+  const legGeo = new THREE.CylinderGeometry(s*0.035,s*0.05,s*0.45,4);
+  const legs=[];
+  for(let i=0;i<legCount;i++){
+    const side = i%2===0?-1:1, pair=Math.floor(i/2);
+    const leg = new THREE.Mesh(legGeo, mat);
+    const lz = s*(0.3 - pair*(0.6/Math.max(1,legCount/2-1)));
+    leg.position.set(side*s*0.6, s*0.28, lz);
+    leg.rotation.z = side*1.1;
+    g.add(leg);
+    legs.push({mesh:leg, side, baseY:s*0.28});
+  }
+  g.userData = {spec, archetype:7, legs, wanderAngle:0};
+  return g;
+}
+
+function buildHydra(spec){
+  const g = new THREE.Group();
+  const s = spec.size;
+  const bodyMat = makeCreatureMat(spec,false);
+  const accMat = makeCreatureMat(spec,true);
+  const hipH = s*0.85;
+  const body = new THREE.Mesh(new THREE.SphereGeometry(s*0.45,8,8), bodyMat);
+  body.position.y = hipH;
+  body.scale.set(1,0.85,1.15);
+  g.add(body);
+  const legGeo = new THREE.CylinderGeometry(s*0.09,s*0.11,hipH,6);
+  legGeo.translate(0,-hipH/2,0);
+  const legs=[];
+  for(const lx of [-s*0.18,s*0.18]){
+    const leg = new THREE.Mesh(legGeo, bodyMat);
+    leg.position.set(lx,hipH,0);
+    g.add(leg);
+    legs.push({mesh:leg, left:lx<0});
+  }
+  const heads=[];
+  const headCount = spec.headCount;
+  for(let i=0;i<headCount;i++){
+    const spread = headCount>1 ? (i/(headCount-1)-0.5)*1.4 : 0;
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(s*0.07,s*0.1,s*spec.neckLen,6), accMat);
+    const necker = new THREE.Object3D();
+    necker.position.set(spread*s*0.3, hipH+s*0.4, 0);
+    necker.rotation.z = spread*0.5;
+    neck.position.y = s*spec.neckLen*0.5;
+    necker.add(neck);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(s*0.2,7,7), accMat);
+    head.position.y = s*spec.neckLen;
+    neck.add(head);
+    g.add(necker);
+    heads.push({necker, phase:i*1.7});
+  }
+  g.userData = {spec, archetype:8, legs, heads, wanderAngle:0};
+  return g;
+}
+
+function buildJelly(spec){
+  const g = new THREE.Group();
+  const s = spec.size;
+  const domeMat = new THREE.MeshStandardMaterial({color:spec.color, roughness:0.3, transparent:true, opacity:0.75, emissive:spec.glow?spec.color:0x000000, emissiveIntensity:spec.glow?0.6:0});
+  const tentMat = new THREE.MeshStandardMaterial({color:spec.accent, roughness:0.4, transparent:true, opacity:0.7, emissive:spec.glow?spec.accent:0x000000, emissiveIntensity:spec.glow?0.5:0});
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(spec.domeWidth*s*0.6,10,8,0,Math.PI*2,0,Math.PI*0.55), domeMat);
+  g.add(dome);
+  const tentacles=[];
+  const tCount = spec.tentacleCount;
+  for(let i=0;i<tCount;i++){
+    const ang = (i/tCount)*Math.PI*2;
+    const rad = spec.domeWidth*s*0.45;
+    const tent = new THREE.Mesh(new THREE.CylinderGeometry(s*0.03,s*0.06,s*spec.tentacleLen,4,4), tentMat);
+    tent.geometry.translate(0,-s*spec.tentacleLen*0.5,0);
+    tent.position.set(Math.cos(ang)*rad, 0, Math.sin(ang)*rad);
+    g.add(tent);
+    tentacles.push({mesh:tent, phase:i*0.9});
+  }
+  g.userData = {spec, archetype:9, dome, tentacles, wanderAngle:0};
+  return g;
+}
+
+function buildTripod(spec){
+  const g = new THREE.Group();
+  const s = spec.size;
+  const mat = makeCreatureMat(spec,false);
+  const accMat = makeCreatureMat(spec,true);
+  const hipH = s*spec.legLen3;
+  const body = new THREE.Mesh(new THREE.ConeGeometry(s*0.4,s*0.7,7), mat);
+  body.position.y = hipH+s*0.35;
+  g.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(s*0.22,7,7), accMat);
+  head.position.y = hipH+s*0.8;
+  g.add(head);
+  const legGeo = new THREE.CylinderGeometry(s*0.07,s*0.1,hipH,6);
+  legGeo.translate(0,-hipH/2,0);
+  const legs=[];
+  for(let i=0;i<3;i++){
+    const ang = (i/3)*Math.PI*2;
+    const leg = new THREE.Mesh(legGeo, mat);
+    leg.position.set(Math.cos(ang)*s*0.35, hipH, Math.sin(ang)*s*0.35);
+    leg.rotation.x = Math.sin(ang)*0.25; leg.rotation.z = Math.cos(ang)*0.25;
+    g.add(leg);
+    legs.push({mesh:leg, idx:i});
+  }
+  g.userData = {spec, archetype:10, legs, wanderAngle:0};
+  return g;
+}
+
+function buildSessile(spec){
+  const g = new THREE.Group();
+  const s = spec.size;
+  const mat = makeCreatureMat(spec,false);
+  const accMat = makeCreatureMat(spec,true);
+  const stalk = new THREE.Mesh(new THREE.CylinderGeometry(s*0.09,s*0.14,s*spec.stalkLen,7), mat);
+  const stalkPivot = new THREE.Object3D();
+  stalk.position.y = s*spec.stalkLen*0.5;
+  stalkPivot.add(stalk);
+  g.add(stalkPivot);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(s*0.28,8,8), accMat);
+  head.position.y = s*spec.stalkLen;
+  stalk.add(head);
+  const petals=[];
+  const petalCount = spec.petalCount;
+  for(let i=0;i<petalCount;i++){
+    const ang = (i/petalCount)*Math.PI*2;
+    const petal = new THREE.Mesh(new THREE.ConeGeometry(s*0.09,s*0.32,5), accMat);
+    petal.position.set(Math.cos(ang)*s*0.22, s*spec.stalkLen+s*0.1, Math.sin(ang)*s*0.22);
+    petal.rotation.x = Math.PI*0.4;
+    petal.rotation.y = -ang;
+    stalk.add(petal);
+    petals.push({mesh:petal, phase:i*0.7});
+  }
+  g.userData = {spec, archetype:11, stalkPivot, petals, wanderAngle:0, rooted:true};
+  return g;
+}
+
+function buildWorm(spec){
+  const g = new THREE.Group();
+  const s = spec.size;
+  const mat = makeCreatureMat(spec,false);
+  const accMat = makeCreatureMat(spec,true);
+  const segCount = 5+Math.floor(spec.wormLen*3);
+  const segLen = s*spec.wormLen/segCount;
+  const segments=[];
+  for(let i=0;i<segCount;i++){
+    const r = s*0.22*(1-i/segCount*0.3);
+    const seg = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.02,r),6,6), i===0?accMat:mat);
+    seg.userData.baseZ = -i*segLen;
+    seg.position.z = -i*segLen;
+    g.add(seg);
+    segments.push(seg);
+  }
+  g.userData = {spec, archetype:12, segments, wanderAngle:0};
+  return g;
+}
+
+function buildCentipede(spec){
+  const g = new THREE.Group();
+  const s = spec.size*0.7;
+  const mat = makeCreatureMat(spec,false);
+  const accMat = makeCreatureMat(spec,true);
+  const segCount = spec.segCount+spec.centLegPairs-4;
+  const segLen = s*0.34;
+  const segments=[];
+  const legPairs=[];
+  let parent = g;
+  for(let i=0;i<segCount;i++){
+    const seg = new THREE.Mesh(new THREE.BoxGeometry(s*0.4,s*0.28,segLen*0.95), i===0?accMat:mat);
+    seg.position.z = segLen/2;
+    const holder = new THREE.Object3D();
+    holder.add(seg);
+    parent.add(holder);
+    const tip = new THREE.Object3D();
+    tip.position.z = segLen;
+    seg.add(tip);
+    segments.push({holder});
+    if(i>0 && i%1===0 && legPairs.length<spec.centLegPairs){
+      const legGeo = new THREE.CylinderGeometry(s*0.025,s*0.035,s*0.4,4);
+      for(const side of [-1,1]){
+        const leg = new THREE.Mesh(legGeo, mat);
+        leg.position.set(side*s*0.3,0,0);
+        leg.rotation.z = side*1.1;
+        seg.add(leg);
+        legPairs.push({mesh:leg, side, idx:legPairs.length});
+      }
+    }
+    parent = tip;
+  }
+  const head = new THREE.Mesh(new THREE.ConeGeometry(s*0.24,s*0.4,6), accMat);
+  head.rotation.x = -Math.PI/2;
+  g.add(head);
+  g.userData = {spec, archetype:13, segments, legPairs, wanderAngle:0};
+  return g;
+}
+
+/* Decorative "kit parts" layered on top of a base body plan. Combined with
+   the 14 base locomotion/body systems (x ~8 variants each) this is what
+   pushes creature diversity from a handful of body plans up to 100 visibly
+   distinct ones — different geometry accents, not just recolors. */
+function applyBodyDecorations(g, spec, variant){
+  const s = spec.size;
+  const accMat = makeCreatureMat(spec,true);
+  switch(variant){
+    case 0: break; // clean baseline silhouette, no extra parts
+    case 1: { // horn pair
+      for(const side of [-1,1]){
+        const horn = new THREE.Mesh(new THREE.ConeGeometry(s*0.06,s*0.4,5), accMat);
+        horn.position.set(side*s*0.12, s*1.05, s*0.15);
+        horn.rotation.x = -0.3; horn.rotation.z = side*0.3;
+        g.add(horn);
+      }
+      break;
+    }
+    case 2: { // spine spike ridge
+      const count = 3+spec.bumpCount;
+      for(let i=0;i<count;i++){
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(s*0.05,s*0.26,4), accMat);
+        spike.position.set(0, s*(0.85-i*0.11), s*(0.3-i*0.2));
+        spike.rotation.x = -0.5;
+        g.add(spike);
+      }
+      break;
+    }
+    case 3: { // extra eye cluster
+      const eyeMat = new THREE.MeshBasicMaterial({color:spec.accent});
+      for(let i=0;i<3;i++){
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(s*0.05,6,6), eyeMat);
+        eye.position.set((i-1)*s*0.1, s*0.95, s*0.35);
+        g.add(eye);
+      }
+      break;
+    }
+    case 4: { // neck/body frill
+      const frill = new THREE.Mesh(new THREE.TorusGeometry(s*0.32,s*0.05,6,16), accMat);
+      frill.position.y = s*0.75;
+      frill.rotation.x = Math.PI/2;
+      g.add(frill);
+      break;
+    }
+    case 5: { // shell plating cap
+      const shellMat = new THREE.MeshStandardMaterial({color:spec.accent, metalness:0.6, roughness:0.3});
+      const shell = new THREE.Mesh(new THREE.SphereGeometry(s*0.5,7,5,0,Math.PI*2,0,Math.PI/2), shellMat);
+      shell.position.y = s*0.75;
+      g.add(shell);
+      break;
+    }
+    case 6: { // bioluminescent stripes
+      const glowMat = new THREE.MeshBasicMaterial({color:spec.accent});
+      for(let i=0;i<4;i++){
+        const stripe = new THREE.Mesh(new THREE.BoxGeometry(s*0.5,s*0.03,s*0.05), glowMat);
+        stripe.position.set(0, s*(0.3+i*0.15), s*0.2);
+        g.add(stripe);
+      }
+      break;
+    }
+    default: { // trailing tendril cluster
+      for(let i=0;i<3;i++){
+        const tendril = new THREE.Mesh(new THREE.CylinderGeometry(s*0.02,s*0.04,s*0.5,4), accMat);
+        tendril.position.set((i-1)*s*0.15, s*0.4, -s*0.4);
+        tendril.rotation.x = 0.6;
+        g.add(tendril);
+      }
+      break;
+    }
+  }
+}
+
+function buildCreature(spec){
+  try{
+    const full = ((spec.archetype%CREATURE_ARCHETYPE_COUNT)+CREATURE_ARCHETYPE_COUNT)%CREATURE_ARCHETYPE_COUNT;
+    const base = full % 14;
+    const variant = Math.floor(full/14);
+    let g;
+    switch(base){
+      case 0: g = buildQuadruped(spec); break;
+      case 1: g = buildBiped(spec); break;
+      case 2: g = buildFlyer(spec); break;
+      case 3: g = buildSerpent(spec); break;
+      case 4: g = buildInsectoid(spec); break;
+      case 5: g = buildFloater(spec); break;
+      case 6: g = buildBlob(spec); break;
+      case 7: g = buildCrab(spec); break;
+      case 8: g = buildHydra(spec); break;
+      case 9: g = buildJelly(spec); break;
+      case 10: g = buildTripod(spec); break;
+      case 11: g = buildSessile(spec); break;
+      case 12: g = buildWorm(spec); break;
+      default: g = buildCentipede(spec); break;
+    }
+    g.userData.fullArchetype = full;
+    g.userData.variant = variant;
+    applyBodyDecorations(g, spec, variant);
+    return g;
+  }catch(e){
+    console.error('buildCreature error:', e);
+    // Default safe creature
+    const g = new THREE.Group();
+    const safe = new THREE.Mesh(
+      new THREE.SphereGeometry(spec.size*0.5, 6, 6),
+      new THREE.MeshStandardMaterial({color: spec.color})
+    );
+    g.add(safe);
+    g.userData = {spec, archetype: spec.archetype, wanderAngle: 0};
+    return g;
+  }
+}
+
+function animateCreature(c, t){
+  try{
+    const u = c.userData;
+    const spec = u.spec;
+    const speed = spec.speed || 1;
+    if(u.wanderAngle===undefined) u.wanderAngle = 0;
+    if(u.phase===undefined) u.phase = 0;
+
+    if(!u.rooted){
+      u.wanderAngle += Math.sin(t*0.2+u.phase)*0.01 + (Math.random()-0.5)*0.005;
+      const moveSpd = speed*0.012*(u.archetype===4 ? 1.4 : 1);
+      c.position.x += Math.cos(u.wanderAngle)*moveSpd;
+      c.position.z += Math.sin(u.wanderAngle)*moveSpd;
+      c.rotation.y = -u.wanderAngle + Math.PI/2;
+    }
+
+    let groundH = c.position.y;
+    if(terrainNoise){
+      try{ groundH = terrainHeight(c.position.x, c.position.z); }catch(e){}
+    }
+
+    switch(u.archetype){
+      case 0: { // quadruped : diagonal walk gait (front-left+back-right, then the other pair)
+        const cyc = t*speed*3 + u.phase;
+        u.legs.forEach(leg=>{
+          const grp = (leg.front===leg.left) ? 0 : Math.PI;
+          leg.mesh.rotation.x = Math.sin(cyc+grp)*0.5;
+        });
+        c.position.y = groundH + Math.abs(Math.sin(cyc))*0.03*spec.size;
+        break;
+      }
+      case 1: { // biped : hop
+        const hopCyc = t*speed*2 + u.phase;
+        const hop = Math.abs(Math.sin(hopCyc));
+        c.position.y = groundH + hop*0.35*spec.size;
+        const tuck = hop*0.9;
+        u.legs.forEach(leg=>{ leg.mesh.rotation.x = -tuck; });
+        u.arms.forEach(arm=>{ arm.mesh.rotation.x = tuck*0.6*(arm.left?1:-1); });
+        u.body.scale.y = 1 - hop*0.15;
+        break;
+      }
+      case 2: { // flyer : wing flap, hovers above ground rather than walking on it
+        const flap = Math.sin(t*spec.bobFreq*2+u.phase);
+        u.wingPivotL.rotation.z = flap*0.9;
+        u.wingPivotR.rotation.z = -flap*0.9;
+        const hover = spec.hoverHeight + Math.sin(t*0.6+u.phase)*0.4;
+        c.position.y = groundH + hover;
+        c.rotation.z = Math.sin(t*0.5+u.phase)*0.15;
+        break;
+      }
+      case 3: { // serpent : undulating side-to-side wave along the chain, hugs ground
+        const wave = t*speed*2 + u.phase;
+        u.segments.forEach((sg,i)=>{ sg.holder.rotation.y = Math.sin(wave - i*0.6)*0.5; });
+        c.position.y = groundH;
+        break;
+      }
+      case 4: { // insectoid : fast tripod scuttle
+        const cyc = t*speed*8 + u.phase;
+        u.legs.forEach(leg=>{
+          const ph = leg.tripod ? Math.PI : 0;
+          leg.mesh.rotation.x = Math.sin(cyc+ph)*0.6;
+          leg.mesh.position.y = leg.baseY + Math.max(0,Math.sin(cyc+ph))*0.08*spec.size;
+        });
+        c.position.y = groundH;
+        break;
+      }
+      case 5: { // floater : orbiting satellite orbs, hovers and drifts
+        const hover = spec.hoverHeight + Math.sin(t*0.7+u.phase)*0.5;
+        c.position.y = groundH + hover;
+        u.core.rotation.y += 0.01;
+        u.sats.forEach(sat=>{
+          const ang = t*sat.orbitSpeed + sat.phase;
+          sat.mesh.position.set(Math.cos(ang)*sat.orbitR, Math.sin(ang*0.6)*sat.orbitR*0.4, Math.sin(ang)*sat.orbitR);
+        });
+        break;
+      }
+      case 6: { // blob : squish-and-roll amoeboid locomotion
+        const squish = 1 + Math.sin(t*spec.bobFreq+u.phase)*0.15;
+        u.body.scale.set(1/Math.sqrt(squish), squish, 1/Math.sqrt(squish));
+        c.position.y = groundH + (squish-1)*0.1*spec.size;
+        u.bumps.forEach(b=>{
+          b.mesh.position.copy(b.basePos).multiplyScalar(1+Math.sin(t*2+b.phase+u.phase)*0.08);
+        });
+        break;
+      }
+      case 7: { // crab : sideways skitter, legs paddle in unison pairs
+        const cyc = t*speed*6 + u.phase;
+        u.legs.forEach((leg,i)=>{
+          leg.mesh.rotation.x = Math.sin(cyc + (i%2)*Math.PI)*0.4;
+        });
+        c.position.y = groundH;
+        // crabs strafe sideways rather than move forward-facing
+        c.rotation.y = -u.wanderAngle;
+        break;
+      }
+      case 8: { // hydra : quadruped-ish walk with independently swaying heads
+        const cyc = t*speed*2.5 + u.phase;
+        u.legs.forEach((leg,i)=>{ leg.mesh.rotation.x = Math.sin(cyc+(leg.left?0:Math.PI))*0.4; });
+        c.position.y = groundH + Math.abs(Math.sin(cyc))*0.02*spec.size;
+        u.heads.forEach(h=>{
+          h.necker.rotation.y = Math.sin(t*0.8+h.phase)*0.5;
+          h.necker.rotation.x = Math.sin(t*0.6+h.phase)*0.15 - 0.1;
+        });
+        break;
+      }
+      case 9: { // jelly : hovers/drifts, tentacles trail with a lagged wave
+        const hover = spec.hoverHeight + Math.sin(t*0.5+u.phase)*0.5;
+        c.position.y = groundH + hover;
+        u.dome.scale.y = 0.9+Math.abs(Math.sin(t*spec.bobFreq*0.7+u.phase))*0.25;
+        u.tentacles.forEach(tn=>{
+          tn.mesh.rotation.x = Math.sin(t*1.4+tn.phase)*0.25;
+          tn.mesh.rotation.z = Math.cos(t*1.1+tn.phase)*0.25;
+        });
+        break;
+      }
+      case 10: { // tripod : rocking tri-legged gait, one leg lifts at a time
+        const cyc = t*speed*3 + u.phase;
+        u.legs.forEach(leg=>{
+          const ph = leg.idx*(Math.PI*2/3);
+          leg.mesh.rotation.x = Math.sin(cyc+ph)*0.45;
+        });
+        c.position.y = groundH + Math.abs(Math.sin(cyc*1.5))*0.05*spec.size;
+        c.rotation.z = Math.sin(cyc)*0.05;
+        break;
+      }
+      case 11: { // sessile : rooted in place, stalk sways, petals/head open-close, doesn't wander
+        c.position.y = groundH;
+        u.stalkPivot.rotation.x = Math.sin(t*0.5+u.phase)*0.12;
+        u.stalkPivot.rotation.z = Math.cos(t*0.4+u.phase)*0.12;
+        u.petals.forEach(p=>{
+          const open = 0.4+Math.sin(t*0.7+p.phase)*0.25*0.5+0.25;
+          p.mesh.rotation.x = Math.PI*0.4*open;
+        });
+        break;
+      }
+      case 12: { // worm : inchworm hump — body arches up in a traveling wave, no legs
+        const wave = t*speed*2 + u.phase;
+        u.segments.forEach((sg,i)=>{
+          const hump = Math.max(0, Math.sin(wave - i*0.7));
+          sg.position.y = hump*0.22*spec.size;
+        });
+        c.position.y = groundH;
+        break;
+      }
+      default: { // centipede : long body, rippling many-legged crawl
+        const wave = t*speed*3 + u.phase;
+        u.segments.forEach((sg,i)=>{ sg.holder.rotation.y = Math.sin(wave - i*0.5)*0.25; });
+        u.legPairs.forEach(leg=>{
+          const ph = (leg.idx%2===0?0:Math.PI) + leg.side*0.2;
+          leg.mesh.rotation.x = Math.sin(wave*1.6 - leg.idx*0.4 + ph)*0.5;
+        });
+        c.position.y = groundH;
+        break;
+      }
+    }
+  }catch(e){
+    console.warn('animateCreature error:', e);
+  }
+}
+
+/* =====================================================================
+   SURFACE INPUT : joystick + camera drag + jump
+===================================================================== */
+const joyZone=document.getElementById('joy-zone');
+const joyBase=document.getElementById('joy-base');
+const joyStick=document.getElementById('joy-stick');
+let joyTouchId=null, joyCenter={x:0,y:0}, joyVec={x:0,y:0};
+
+joyZone.addEventListener('touchstart', e=>{
+  const t=e.changedTouches[0];
+  joyTouchId=t.identifier;
+  joyCenter={x:t.clientX,y:t.clientY};
+  joyBase.style.left=(t.clientX-55)+'px'; joyBase.style.top=(t.clientY-55)+'px'; joyBase.style.display='block';
+  joyStick.style.left=(t.clientX-24)+'px'; joyStick.style.top=(t.clientY-24)+'px';
+}, {passive:true});
+joyZone.addEventListener('touchmove', e=>{
+  for(const t of e.changedTouches){
+    if(t.identifier===joyTouchId){
+      let dx=t.clientX-joyCenter.x, dy=t.clientY-joyCenter.y;
+      const len=Math.hypot(dx,dy), max=50;
+      if(len>max){ dx=dx/len*max; dy=dy/len*max; }
+      joyStick.style.left=(joyCenter.x+dx-24)+'px'; joyStick.style.top=(joyCenter.y+dy-24)+'px';
+      joyVec.x=dx/max; joyVec.y=dy/max;
+    }
+  }
+}, {passive:true});
+function joyReset(e){
+  for(const t of e.changedTouches){
+    if(t.identifier===joyTouchId){ joyTouchId=null; joyVec={x:0,y:0}; joyBase.style.display='none'; }
+  }
+}
+joyZone.addEventListener('touchend', joyReset);
+joyZone.addEventListener('touchcancel', joyReset);
+
+/* right side: camera orbit drag */
+const camZone=document.getElementById('cam-zone');
+let camTouchId=null, camLastX=0, camLastY=0;
+let camYaw=0, camPitch=0.35;
+camZone.addEventListener('touchstart', e=>{
+  const t=e.changedTouches[0]; camTouchId=t.identifier; camLastX=t.clientX; camLastY=t.clientY;
+}, {passive:true});
+camZone.addEventListener('touchmove', e=>{
+  for(const t of e.changedTouches){
+    if(t.identifier===camTouchId){
+      const dx=(t.clientX-camLastX)*0.0045*state.sensitivity;
+      const dy=(t.clientY-camLastY)*0.0045*state.sensitivity*(state.invertY?-1:1);
+      camYaw -= dx; camPitch = Math.max(-0.2,Math.min(1.3, camPitch - dy));
+      camLastX=t.clientX; camLastY=t.clientY;
+    }
+  }
+}, {passive:true});
+camZone.addEventListener('touchend', e=>{ for(const t of e.changedTouches){ if(t.identifier===camTouchId) camTouchId=null; } });
+// desktop fallback
+let mouseDown=false;
+camZone.addEventListener('mousedown', e=>{ mouseDown=true; camLastX=e.clientX; camLastY=e.clientY; });
+window.addEventListener('mousemove', e=>{
+  if(mouseDown && state.mode==='surface'){
+    const dx=(e.clientX-camLastX)*0.0045*state.sensitivity;
+    const dy=(e.clientY-camLastY)*0.0045*state.sensitivity*(state.invertY?-1:1);
+    camYaw -= dx; camPitch = Math.max(-0.2,Math.min(1.3, camPitch - dy));
+    camLastX=e.clientX; camLastY=e.clientY;
+  }
+});
+window.addEventListener('mouseup', ()=>mouseDown=false);
+
+const jumpBtn=document.getElementById('jump-btn');
+function doJump(){ if(onGround){ playerVelY = 5.2; onGround=false; if(navigator.vibrate) navigator.vibrate(20); } }
+jumpBtn.addEventListener('touchstart', e=>{ e.preventDefault(); doJump(); }, {passive:false});
+jumpBtn.addEventListener('mousedown', doJump);
+
+const takeoffBtn=document.getElementById('takeoff-btn');
+takeoffBtn.addEventListener('click', beginTakeoff);
+takeoffBtn.addEventListener('touchstart', e=>{ e.preventDefault(); beginTakeoff(); }, {passive:false});
+
+/* =====================================================================
+   LANDING / TAKEOFF SEQUENCES
+===================================================================== */
+let transitionT=0, transitionFrom=null, transitionTo=null;
+
+function beginLanding(){
+  if(state.mode!=='space') return;
+  const {planet, dist} = nearestPlanet();
+  if(!planet || dist > planet.radius*3) return;
+  state.mode='landing';
+  state.currentPlanet = planet;
+  state.spacePos.copy(ship.position);
+  landBtn.classList.remove('show');
+  document.getElementById('mode-line').textContent='Landing...';
+
+  if(!state.discovered[planet.key]){
+    state.discovered[planet.key]=planet;
+    showDiscoveryToast(planet.name);
+    addLogEntry(planet);
+  }
+
+  landOnPlanet(planet);
+  setTimeout(()=>{
+    activeScene = surfaceScene;
+    document.getElementById('space-controls').style.display='none';
+    document.getElementById('surface-controls').classList.add('show');
+    document.getElementById('mode-line').textContent='Surface Walk';
+    document.getElementById('planet-name').textContent = planet.name;
+    document.getElementById('coord-line').textContent = 'x'+planet.coord.x+' y'+planet.coord.y+' z'+planet.coord.z;
+    state.mode='surface';
+
+  }, 900);
+}
+
+function beginTakeoff(){
+  if(state.mode!=='surface') return;
+  state.mode='takeoff';
+  document.getElementById('mode-line').textContent='Launching...';
+  document.getElementById('surface-controls').classList.remove('show');
+  setTimeout(()=>{
+    activeScene = spaceScene;
+    ship.position.copy(state.spacePos);
+    document.getElementById('space-controls').style.display='block';
+    document.getElementById('mode-line').textContent='Flight';
+    document.getElementById('planet-name').textContent='Deep Space';
+    document.getElementById('coord-line').textContent='x'+Math.round(ship.position.x/SECTOR)+' y'+Math.round(ship.position.y/SECTOR)+' z'+Math.round(ship.position.z/SECTOR);
+    state.mode='space';
+  }, 700);
+}
+
+/* =====================================================================
+   DISCOVERY LOG / TOAST
+===================================================================== */
+function showDiscoveryToast(name){
+  const toast=document.getElementById('discover-toast');
+  document.getElementById('discover-name').textContent=name;
+  toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'), 2600);
+}
+function addLogEntry(planet){
+  const list=document.getElementById('log-list');
+  const div=document.createElement('div');
+  div.className='entry';
+  div.textContent=planet.name+' — ('+planet.coord.x+','+planet.coord.y+','+planet.coord.z+')';
+  list.prepend(div);
+}
+document.getElementById('log-btn').addEventListener('click', ()=>{
+  document.getElementById('log-panel').classList.toggle('show');
+});
+
+/* =====================================================================
+   SETTINGS PANEL
+===================================================================== */
+const settingsPanel=document.getElementById('settings-panel');
+document.getElementById('settings-btn').addEventListener('click', ()=>settingsPanel.classList.add('show'));
+document.getElementById('close-settings').addEventListener('click', ()=>settingsPanel.classList.remove('show'));
+
+document.getElementById('ship-color').addEventListener('input', e=>{
+  state.shipColor = new THREE.Color(e.target.value).getHex();
+  shipMat.color.set(state.shipColor);
+  shipMat.emissive.set(state.shipColor).multiplyScalar(0.3);
+});
+document.getElementById('sensitivity').addEventListener('input', e=> state.sensitivity=parseFloat(e.target.value));
+document.getElementById('volume').addEventListener('input', e=>{ state.volume=parseFloat(e.target.value); updateAudioVolume(); });
+
+document.getElementById('gfx-quality').addEventListener('change', e=>{
+  state.gfx = e.target.value;
+  buildStarfield();
+  if(state.mode==='surface' && state.currentPlanet) rebuildAllSurfaceChunks();
+});
+
+const invertToggle=document.getElementById('invert-toggle');
+invertToggle.addEventListener('click', ()=>{ state.invertY=!state.invertY; invertToggle.classList.toggle('on'); });
+
+const hudToggle=document.getElementById('hud-toggle');
+hudToggle.addEventListener('click', ()=>{
+  state.hudOn=!state.hudOn; hudToggle.classList.toggle('on');
+  document.getElementById('hud').classList.toggle('hidden', !state.hudOn);
+});
+
+document.getElementById('fullscreen-btn').addEventListener('click', ()=>{
+  if(!document.fullscreenElement){ document.documentElement.requestFullscreen().catch(()=>{}); }
+  else { document.exitFullscreen(); }
+});
+
+document.getElementById('restart-btn').addEventListener('click', ()=>{
+  UNIVERSE_OFFSET = Math.floor(Math.random()*1e6);
+  for(const val of activePlanets.values()){
+    if(val && val.group){ spaceScene.remove(val.group); val.group.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material) o.material.dispose(); }); }
+  }
+  activePlanets.clear();
+  state.discovered={};
+  document.getElementById('log-list').innerHTML='';
+  ship.position.set(0,0,0);
+  shipQuat.identity();
+  ensureSafeSpawn();
+  settingsPanel.classList.remove('show');
+});
+
+/* =====================================================================
+   AMBIENT PROCEDURAL AUDIO (WebAudio, no external files)
+===================================================================== */
+let audioCtx=null, ambientGain=null, ambientOsc=null;
+function initAudio(){
+  if(audioCtx) return;
+  try{
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    ambientGain = audioCtx.createGain();
+    ambientGain.gain.value = state.volume*0.12;
+    ambientGain.connect(audioCtx.destination);
+    ambientOsc = audioCtx.createOscillator();
+    ambientOsc.type='sine'; ambientOsc.frequency.value=60;
+    const lfo = audioCtx.createOscillator(); lfo.frequency.value=0.05;
+    const lfoGain = audioCtx.createGain(); lfoGain.gain.value=8;
+    lfo.connect(lfoGain); lfoGain.connect(ambientOsc.frequency);
+    ambientOsc.connect(ambientGain);
+    ambientOsc.start(); lfo.start();
+  }catch(e){}
+}
+function updateAudioVolume(){ if(ambientGain) ambientGain.gain.value = state.volume*0.12; }
+window.addEventListener('touchstart', initAudio, {once:true});
+window.addEventListener('mousedown', initAudio, {once:true});
+
+/* =====================================================================
+   MAIN LOOP
+===================================================================== */
+const clock = new THREE.Clock();
+const forward = new THREE.Vector3();
+
+function updateSpace(dt, t){
+  ship.quaternion.copy(shipQuat);
+  forward.set(0,0,-1).applyQuaternion(shipQuat);
+
+  let speed = state.throttle * 34;
+  if(state.boosting){
+    speed *= 2.3;
+  }
+
+  ship.position.addScaledVector(forward, speed*dt);
+
+  const camOffset = new THREE.Vector3(0,1.4,7.2).applyQuaternion(shipQuat);
+  camera.position.copy(ship.position).add(camOffset);
+  const lookTarget = ship.position.clone().addScaledVector(forward, 10);
+  camera.up.set(0,1,0).applyQuaternion(shipQuat);
+  camera.lookAt(lookTarget);
+
+  engineL.scale.setScalar(0.8+state.throttle*1.4+(state.boosting?0.8:0));
+  engineR.scale.copy(engineL.scale);
+
+  updateUniverseStreaming();
+
+  const {planet, dist} = nearestPlanet();
+  if(planet && dist < planet.radius*3){
+    landBtn.classList.add('show');
+  } else {
+    landBtn.classList.remove('show');
+  }
+
+  document.getElementById('fuel-bar').style.width = '100%';
+  const [sx,sy,sz] = currentSector(ship.position);
+  document.getElementById('coord-line').textContent = 'x'+sx+' y'+sy+' z'+sz;
+  document.getElementById('planet-name').textContent = planet? (dist<planet.radius*1.2? 'Approaching '+planet.name : planet.name) : 'Deep Space';
+}
+
+function updateSurface(dt, t){
+  try{
+    updateSurfaceChunks(false);
+    const gravity = state.currentPlanet ? state.currentPlanet.gravity : 9;
+    // movement relative to camera yaw
+    const moveX = joyVec.x, moveZ = joyVec.y;
+    const moving = Math.hypot(moveX,moveZ) > 0.08;
+    if(moving){
+      const speed = 5.4;
+      const sinY=Math.sin(camYaw), cosY=Math.cos(camYaw);
+      const fwdX = -sinY, fwdZ = -cosY;
+      const rightX = cosY, rightZ = -sinY;
+      const dx = (rightX*moveX + fwdX*(-moveZ))*speed*dt;
+      const dz = (rightZ*moveX + fwdZ*(-moveZ))*speed*dt;
+      player.position.x += dx; player.position.z += dz;
+      player.rotation.y = Math.atan2(dx,dz);
+    }
+    // gravity
+    playerVelY -= gravity*dt*0.5;
+    player.position.y += playerVelY*dt;
+    const groundH = terrainHeight(player.position.x, player.position.z) + CHAR_HEIGHT;
+    if(player.position.y <= groundH){ player.position.y = groundH; playerVelY=0; onGround=true; }
+    else onGround=false;
+
+    // android bot walk/idle animation
+    const u = playerBot.userData;
+    if(moving && onGround){
+      const swing = Math.sin(t*9)*0.55;
+      u.legL.rotation.x = swing; u.legR.rotation.x = -swing;
+      u.armL.rotation.x = -swing*0.8; u.armR.rotation.x = swing*0.8;
+      u.head.position.y = u.headBaseY + Math.abs(Math.sin(t*9))*0.02;
+    } else {
+      u.legL.rotation.x += (0-u.legL.rotation.x)*0.15;
+      u.legR.rotation.x += (0-u.legR.rotation.x)*0.15;
+      u.armL.rotation.x += (0-u.armL.rotation.x)*0.15;
+      u.armR.rotation.x += (0-u.armR.rotation.x)*0.15;
+      u.head.position.y = u.headBaseY + Math.sin(t*1.6)*0.012;
+    }
+    if(!onGround){ u.legL.rotation.x = -0.3; u.legR.rotation.x = 0.4; }
+
+    // camera orbit
+    const camDist=6.5;
+    const camX = player.position.x + Math.sin(camYaw)*Math.cos(camPitch)*camDist;
+    const camZ = player.position.z + Math.cos(camYaw)*Math.cos(camPitch)*camDist;
+    const camY = player.position.y + 1.5 + Math.sin(camPitch)*camDist;
+    camera.position.set(camX,camY,camZ);
+    camera.up.set(0,1,0);
+    camera.lookAt(player.position.x, player.position.y+1.1, player.position.z);
+
+    creatureList.forEach(c=>{
+      try{
+        animateCreature(c,t);
+      }catch(e){
+        console.warn('Creature animation error:', e);
+      }
+    });
+
+    // ambient flora/structure micro-animation (floating orbs, hovering shards)
+    ambientAnimList.forEach(a=>{
+      try{
+        if(a.type==='orbs'){
+          a.orbs.forEach((orb,i)=>{
+            orb.position.y += Math.sin(t*a.freq+a.phase+i)*0.001;
+          });
+          a.group.rotation.y = t*0.15+a.phase;
+        } else if(a.type==='shards'){
+          a.shards.forEach((sh,i)=>{
+            sh.position.y += Math.sin(t*a.freq+a.phase+i)*0.0015;
+            sh.rotation.y += 0.01;
+            sh.rotation.x += 0.006;
+          });
+        }
+      }catch(e){
+        console.warn('Flora animation error:', e);
+      }
+    });
+  }catch(e){
+    console.error('updateSurface error:', e);
+  }
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  try{
+    const dt = Math.min(clock.getDelta(), 0.05);
+    const t = clock.elapsedTime;
+
+    if(state.mode==='space') updateSpace(dt,t);
+    else if(state.mode==='surface') updateSurface(dt,t);
+
+    try{ MP.updateLocal(dt); }catch(e){ console.warn('Multiplayer update error:', e); }
+
+    renderer.render(activeScene, camera);
+  }catch(e){
+    console.error('Animation loop error:', e);
+  }
+}
+
+/* =====================================================================
+   MULTIPLAYER + PROXIMITY VOICE  (Supabase Realtime)
+   - Ship positions of every connected player are broadcast over a
+     Supabase Realtime channel and rendered as "ghost ships".
+   - When two players' ships come within CONNECT_RANGE, a WebRTC audio
+     call is negotiated automatically (signaled through the same
+     channel) and the volume is scaled by distance, fading to silence
+     past VOICE_RANGE — walkie-talkie style proximity voice.
+===================================================================== */
+const SUPABASE_URL = 'https://spzhifbsmdxppzpfrvca.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_MjHt7ir121YX551IrMHMXA_Pk_Evrxk';
+const VOICE_RANGE   = 260;   // world units — audio fades to 0 beyond this
+const CONNECT_RANGE = 340;   // world units — WebRTC call opens/closes around this (with hysteresis)
+
+const MP = (function(){
+  const sb = (window.supabase && window.supabase.createClient)
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+    : null;
+
+  const myId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('p-'+Math.random().toString(36).slice(2)+Date.now());
+  let myName = (localStorage.getItem('infinity-name')||'').trim() || ('Explorer-'+Math.floor(1000+Math.random()*9000));
+
+  const ghosts = new Map();   // id -> {ship:{group,tag}, avatar:{group,tag}, target:{pos,quat}, mode, planetKey}
+  const peers  = new Map();   // id -> {pc, gain}
+  let localStream = null, micOn = false, micRequesting = false, audioCtx = null, lastBroadcast = 0;
+
+  function disposeGroup(group){
+    group.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material){ if(o.material.map) o.material.map.dispose(); o.material.dispose(); } });
+  }
+
+  function makeNameSprite(text){
+    const cnv = document.createElement('canvas');
+    cnv.width = 256; cnv.height = 64;
+    const ctx = cnv.getContext('2d');
+    ctx.fillStyle = 'rgba(6,12,22,0.55)'; ctx.fillRect(0,0,256,64);
+    ctx.font = 'bold 30px monospace'; ctx.fillStyle = '#5ee7ff'; ctx.textAlign = 'center';
+    ctx.fillText(text.slice(0,16), 128, 40);
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cnv), depthTest:false, transparent:true}));
+    spr.scale.set(8,2,1); spr.position.y = 2.6;
+    return spr;
+  }
+
+  function makeGhostShip(name){
+    const group = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({color:0xff8a5e, metalness:0.6, roughness:0.35, emissive:0x2a1205, emissiveIntensity:0.4});
+    const hg = new THREE.ConeGeometry(0.9,3.2,8); hg.rotateX(Math.PI/2);
+    group.add(new THREE.Mesh(hg, mat));
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(3.4,0.12,1.0), new THREE.MeshStandardMaterial({color:0x332211,metalness:0.5,roughness:0.5}));
+    wing.position.z = 0.4; group.add(wing);
+    const tag = makeNameSprite(name);
+    group.add(tag);
+    group.visible = false;
+    spaceScene.add(group);
+    return {group, tag};
+  }
+
+  function makeGhostAvatar(name){
+    const group = new THREE.Group();
+    group.userData.isGhostAvatar = true; // survives the per-landing surfaceScene sweep in landOnPlanet()
+    group.add(buildAndroidBot());
+    const tag = makeNameSprite(name);
+    tag.position.y = 2.0;
+    group.add(tag);
+    group.visible = false;
+    surfaceScene.add(group);
+    return {group, tag};
+  }
+
+  function removeGhost(id){
+    const g = ghosts.get(id);
+    if(g){
+      spaceScene.remove(g.ship.group);   disposeGroup(g.ship.group);
+      surfaceScene.remove(g.avatar.group); disposeGroup(g.avatar.group);
+      ghosts.delete(id);
+    }
+    closePeer(id);
+    updateCountUI();
+  }
+
+  /* Only send once the realtime socket has actually joined the channel —
+     sending earlier silently falls back to REST and spams a console warning. */
+  function safeSend(msg){
+    if(channel && channel.state === 'joined') channel.send(msg);
+  }
+
+  /* ---------------- WebRTC proximity voice ---------------- */
+  function ensureAudioCtx(){
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  function makePeerConnection(id){
+    const pc = new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+    if(localStream) localStream.getTracks().forEach(tr=>pc.addTrack(tr, localStream));
+    pc.onicecandidate = e=>{
+      if(e.candidate) safeSend({type:'broadcast', event:'rtc', payload:{to:id, from:myId, kind:'candidate', data:e.candidate}});
+    };
+    let gainNode = null;
+    pc.ontrack = e=>{
+      const ctx = ensureAudioCtx();
+      const src = ctx.createMediaStreamSource(e.streams[0]);
+      gainNode = ctx.createGain();
+      gainNode.gain.value = 0;
+      src.connect(gainNode).connect(ctx.destination);
+    };
+    const rec = {pc, get gain(){return gainNode;}};
+    peers.set(id, rec);
+    return rec;
+  }
+
+  function closePeer(id){
+    const rec = peers.get(id);
+    if(rec){ try{ rec.pc.close(); }catch(e){} peers.delete(id); }
+  }
+
+  async function initiateOffer(id){
+    if(!micOn || peers.has(id) || !channel || channel.state !== 'joined') return;
+    const rec = makePeerConnection(id);
+    const offer = await rec.pc.createOffer();
+    await rec.pc.setLocalDescription(offer);
+    safeSend({type:'broadcast', event:'rtc', payload:{to:id, from:myId, kind:'offer', data:offer}});
+  }
+
+  async function handleRTC(payload){
+    if(!payload || payload.to !== myId) return;
+    const {from, kind, data} = payload;
+    if(kind==='offer'){
+      if(!micOn) return;
+      const rec = peers.get(from) || makePeerConnection(from);
+      await rec.pc.setRemoteDescription(new RTCSessionDescription(data));
+      const answer = await rec.pc.createAnswer();
+      await rec.pc.setLocalDescription(answer);
+      safeSend({type:'broadcast', event:'rtc', payload:{to:from, from:myId, kind:'answer', data:answer}});
+    } else if(kind==='answer'){
+      const rec = peers.get(from);
+      if(rec) await rec.pc.setRemoteDescription(new RTCSessionDescription(data));
+    } else if(kind==='candidate'){
+      const rec = peers.get(from);
+      if(rec){ try{ await rec.pc.addIceCandidate(data); }catch(e){} }
+    }
+  }
+
+  async function toggleMic(){
+    // guard against rapid double-clicks racing two getUserMedia() calls at once
+    if(micRequesting) return {state:'busy'};
+    if(micOn){
+      if(localStream) localStream.getTracks().forEach(t=>t.stop());
+      localStream = null; micOn = false;
+      Array.from(peers.keys()).forEach(closePeer);
+      return {state:'off'};
+    }
+    // getUserMedia only exists in a "secure context" — https://, or localhost.
+    // Opened as a plain file:// or over http://, the browser removes the API
+    // entirely (silently), which is the #1 reason no popup ever appears.
+    if(!window.isSecureContext){
+      return {state:'insecure'};
+    }
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      return {state:'unsupported'};
+    }
+    micRequesting = true;
+    try{
+      localStream = await navigator.mediaDevices.getUserMedia({audio:true});
+      ensureAudioCtx();
+      micOn = true;
+      return {state:'on'};
+    }catch(e){
+      micOn = false;
+      const denied = e && (e.name==='NotAllowedError' || e.name==='PermissionDeniedError');
+      console.warn('Mic permission error:', e);
+      return {state: denied ? 'denied' : 'error'};
+    }finally{
+      micRequesting = false;
+    }
+  }
+
+  /* ---------------- presence + position sync ---------------- */
+  const channel = sb ? sb.channel('infinity-universe', {
+    config: { broadcast:{ self:false }, presence:{ key: myId } }
+  }) : null;
+
+  if(channel){
+    channel.on('presence', {event:'sync'}, ()=>{
+      const st = channel.presenceState();
+      const seen = new Set();
+      Object.keys(st).forEach(id=>{
+        if(id===myId) return;
+        seen.add(id);
+        if(!ghosts.has(id)){
+          const meta = (st[id] && st[id][0]) || {};
+          const name = meta.name || 'Explorer';
+          ghosts.set(id, {
+            ship: makeGhostShip(name),
+            avatar: makeGhostAvatar(name),
+            target:{pos:new THREE.Vector3(), quat:new THREE.Quaternion()},
+            mode:'space', planetKey:null
+          });
+        }
+      });
+      ghosts.forEach((g,id)=>{ if(!seen.has(id)) removeGhost(id); });
+      updateCountUI();
+    });
+    channel.on('broadcast', {event:'pos'}, ({payload})=>{
+      const g = ghosts.get(payload.id);
+      if(!g) return;
+      g.target.pos.set(payload.x,payload.y,payload.z);
+      if(payload.mode==='surface'){
+        g.target.quat.setFromAxisAngle(new THREE.Vector3(0,1,0), payload.rotY||0);
+      } else {
+        g.target.quat.set(payload.qx,payload.qy,payload.qz,payload.qw);
+      }
+      g.mode = payload.mode;
+      g.planetKey = payload.planetKey || null;
+    });
+    channel.on('broadcast', {event:'rtc'}, ({payload})=>handleRTC(payload));
+    channel.subscribe(async status=>{
+      if(status==='SUBSCRIBED') await channel.track({name: myName});
+    });
+  }
+
+  function updateCountUI(){
+    const el = document.getElementById('mp-count');
+    if(el) el.textContent = (ghosts.size+1) + ' online';
+  }
+
+  function setName(n){
+    myName = n.slice(0,16) || myName;
+    localStorage.setItem('infinity-name', myName);
+    if(channel) channel.track({name: myName});
+  }
+
+  function updateLocal(dt){
+    const myPlanetKey = state.currentPlanet ? state.currentPlanet.key : null;
+    const localPos = state.mode==='surface' ? player.position : ship.position;
+
+    // broadcast our own transform ~9x/sec, in whichever mode we're in
+    if(channel && channel.state==='joined' && (state.mode==='space' || state.mode==='surface')){
+      const now = performance.now();
+      if(now - lastBroadcast > 110){
+        lastBroadcast = now;
+        if(state.mode==='space'){
+          safeSend({type:'broadcast', event:'pos', payload:{
+            id:myId, mode:'space', planetKey:null,
+            x:ship.position.x, y:ship.position.y, z:ship.position.z,
+            qx:shipQuat.x, qy:shipQuat.y, qz:shipQuat.z, qw:shipQuat.w
+          }});
+        } else {
+          safeSend({type:'broadcast', event:'pos', payload:{
+            id:myId, mode:'surface', planetKey:myPlanetKey,
+            x:player.position.x, y:player.position.y, z:player.position.z,
+            rotY: player.rotation.y
+          }});
+        }
+      }
+    }
+
+    ghosts.forEach((g,id)=>{
+      const sameContext = (state.mode==='space' && g.mode==='space')
+                        || (state.mode==='surface' && g.mode==='surface' && g.planetKey===myPlanetKey);
+      const active = g.mode==='surface' ? g.avatar : g.ship;
+      const inactive = g.mode==='surface' ? g.ship : g.avatar;
+      inactive.group.visible = false;
+
+      if(sameContext){
+        active.group.visible = true;
+        active.group.position.lerp(g.target.pos, Math.min(1, dt*8));
+        active.group.quaternion.slerp(g.target.quat, Math.min(1, dt*8));
+        active.tag.quaternion.copy(camera.quaternion);
+      } else {
+        active.group.visible = false;
+      }
+
+      const dist = sameContext ? localPos.distanceTo(active.group.position) : Infinity;
+      if(micOn){
+        if(dist < CONNECT_RANGE && !peers.has(id) && id > myId) initiateOffer(id);
+        if(dist > CONNECT_RANGE*1.4 && peers.has(id)) closePeer(id);
+      }
+      const rec = peers.get(id);
+      if(rec && rec.gain) rec.gain.gain.value = dist < VOICE_RANGE ? Math.max(0, 1 - dist/VOICE_RANGE) : 0;
+    });
+  }
+
+  return { updateLocal, toggleMic, setName, get micOn(){return micOn;}, get micRequesting(){return micRequesting;}, get myName(){return myName;} };
+})();
+
+/* mic button + name input wiring */
+(function initMultiplayerUI(){
+  const micBtn = document.getElementById('mic-btn');
+  const nameInput = document.getElementById('name-input');
+  if(nameInput) nameInput.value = MP.myName.startsWith('Explorer-') ? '' : MP.myName;
+  if(nameInput) nameInput.addEventListener('change', ()=>{ if(nameInput.value.trim()) MP.setName(nameInput.value.trim()); });
+
+  // Reflect the browser's actual current permission state on load, where supported,
+  // so a previously-blocked mic shows red immediately instead of only after a click.
+  if(micBtn && navigator.permissions && navigator.permissions.query){
+    navigator.permissions.query({name:'microphone'}).then(status=>{
+      if(status.state==='denied'){ micBtn.style.opacity='.5'; micBtn.style.color='#ff5e6c'; }
+      status.onchange = ()=>{
+        if(status.state==='denied'){ micBtn.style.opacity='.5'; micBtn.style.color='#ff5e6c'; }
+      };
+    }).catch(()=>{});
+  }
+
+  if(micBtn){
+    micBtn.addEventListener('click', async ()=>{
+      if(MP.micRequesting) return; // ignore taps while a permission request is already in flight
+      micBtn.style.opacity = '.85';
+      micBtn.textContent = '⏳';
+      const result = await MP.toggleMic();
+      if(result.state==='on'){
+        micBtn.style.opacity = '1'; micBtn.style.color = '#3cffb0'; micBtn.textContent = '🎤';
+      } else if(result.state==='off'){
+        micBtn.style.opacity = '.5'; micBtn.style.color = ''; micBtn.textContent = '🎤';
+      } else if(result.state==='denied'){
+        micBtn.style.opacity = '.5'; micBtn.style.color = '#ff5e6c'; micBtn.textContent = '🎤';
+        alert('Microphone permission block වෙලා තියෙනවා. Browser එකේ address bar එකේ 🔒/ⓘ icon එක click කරලා Microphone → Allow කරලා පිටුව reload කරන්න — permission එකපාරක් deny කළාට පස්සේ site එකේ code එකකින් ආයෙත් popup එක ගේන්න බැහැ, ඒක browser එකේම security rule එකක්.');
+      } else if(result.state==='insecure'){
+        micBtn.style.opacity = '.3'; micBtn.textContent = '🎤';
+        alert('Voice chat වැඩ කරන්න මේ file එක https:// හරහා (හෝ localhost එකෙන්) විවෘත කරන්න ඕනේ. file:// එකෙන් කෙලින්ම open කළොත් හෝ http:// (https නැති) server එකකින් serve කළොත් browser එක microphone API එකම ලබා දෙන්නේ නෑ.');
+      } else if(result.state==='unsupported'){
+        micBtn.style.opacity = '.3'; micBtn.textContent = '🎤';
+        alert('මේ browser එකේ voice chat support වෙන්නේ නෑ.');
+      } else {
+        micBtn.style.opacity = '.5'; micBtn.textContent = '🎤';
+      }
+    });
+  }
+})();
+
+/* fade hint after a while, only once the player is actually in the game */
+let hintFadeTimer=null;
+function armHintFade(){
+  clearTimeout(hintFadeTimer);
+  hintFadeTimer = setTimeout(()=>{ document.getElementById('hint').style.opacity='0'; }, 7000);
+}
+
+/* =====================================================================
+   INTRO / TITLE SCREEN : glitch-transition into the running game
+===================================================================== */
+(function initIntroScreen(){
+  const introScreen = document.getElementById('intro-screen');
+  const enterBtn = document.getElementById('enter-btn');
+  let entering = false;
+  function enterGame(){
+    if(entering) return;
+    entering = true;
+    enterBtn.disabled = true;
+    const nameInput = document.getElementById('name-input');
+    if(nameInput && nameInput.value.trim()) MP.setName(nameInput.value.trim());
+    initAudio();
+    introScreen.classList.add('glitching');
+    setTimeout(()=>{
+      introScreen.classList.add('hide');
+      armHintFade();
+      setTimeout(()=>{ introScreen.remove(); }, 550);
+    }, 650);
+  }
+  enterBtn.addEventListener('click', enterGame);
+  enterBtn.addEventListener('touchstart', e=>{ e.preventDefault(); enterGame(); }, {passive:false});
+})();
+
+ensureSafeSpawn();
+updateUniverseStreaming();
+animate();
+
+})();
+</script>
+</body>
+</html>

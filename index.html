@@ -269,6 +269,44 @@
     82%{background-color:#060309;}
     100%{background-color:#060309;}
   }
+
+  /* ---------- Combat / Shipyard ---------- */
+  #hp-block{margin-top:8px;}
+  #hp-bar-track{width:100%;height:8px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:3px;}
+  #hp-bar-fill{height:100%;background:linear-gradient(90deg,#2a8c4a,#5eff8a);transition:width .2s;}
+  #hp-bar-fill.hp-mid{background:linear-gradient(90deg,#8c7a2a,#ffe15e);}
+  #hp-bar-fill.hp-low{background:linear-gradient(90deg,#8c2a2a,var(--danger));}
+  #res-block{display:flex;gap:10px;margin-top:8px;font-size:11px;}
+  #res-block .res-item{display:flex;align-items:center;gap:4px;color:#dff8ff;}
+  #shipyard-btn{position:absolute;top:12px;right:262px;z-index:20;font-size:15px;}
+  #damage-flash{position:fixed;inset:0;background:radial-gradient(ellipse at center, rgba(255,0,0,0) 40%, rgba(255,20,20,.45) 100%);opacity:0;pointer-events:none;z-index:60;transition:opacity .08s;}
+  #damage-flash.hit{opacity:1;transition:opacity .03s;}
+  #fire-btn{position:absolute;right:16px;bottom:180px;width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff8a8a,#a41a1a);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;z-index:21;}
+  #fire-btn:active{filter:brightness(1.3);}
+  #kill-feed{position:absolute;top:64px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:4px;align-items:center;z-index:19;pointer-events:none;}
+  .kill-feed-msg{background:rgba(6,12,22,.75);border:1px solid rgba(255,94,108,.4);border-radius:8px;padding:4px 12px;font-size:11px;color:#ffd7da;opacity:0;transition:opacity .3s;}
+  .kill-feed-msg.show{opacity:1;}
+  .kill-feed-msg.kill-feed-loot{border-color:rgba(94,231,255,.4);color:#dff8ff;}
+  #respawn-overlay{position:fixed;inset:0;background:rgba(2,4,10,.9);display:none;z-index:70;align-items:center;justify-content:center;flex-direction:column;gap:10px;}
+  #respawn-overlay.show{display:flex;}
+  #respawn-overlay h2{color:var(--danger);font-size:20px;letter-spacing:2px;}
+  #respawn-overlay div.rs-sub{font-size:12px;opacity:.7;}
+  #shipyard-panel{position:fixed;inset:0;background:rgba(2,4,10,.94);display:none;z-index:50;padding:20px 16px;overflow-y:auto;}
+  #shipyard-panel.show{display:block;}
+  #shipyard-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+  #shipyard-header h2{color:var(--accent);font-size:16px;letter-spacing:2px;margin:0;}
+  .sy-section{background:var(--panel);border:1px solid var(--panel-border);border-radius:10px;padding:12px 14px;margin-bottom:14px;}
+  .sy-res-row{display:flex;gap:16px;font-size:13px;}
+  .sy-res-row .res-item{display:flex;align-items:center;gap:5px;}
+  .sy-card{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);gap:10px;}
+  .sy-card:last-child{border-bottom:none;}
+  .sy-card-info{flex:1;}
+  .sy-card-title{font-size:12px;color:#eafcff;font-weight:bold;}
+  .sy-card-desc{font-size:10px;opacity:.6;margin-top:2px;}
+  .sy-card-cost{font-size:10px;opacity:.8;margin-top:3px;color:var(--accent);}
+  .sy-buy-btn{padding:9px 14px;border-radius:8px;background:var(--accent);color:#03131a;border:none;font-weight:bold;font-size:11px;letter-spacing:.5px;white-space:nowrap;}
+  .sy-buy-btn.active{background:rgba(94,231,255,.15);color:var(--accent);border:1px solid var(--accent);}
+  .sy-buy-btn:disabled{background:var(--panel);color:#556;border:1px solid var(--panel-border);}
 </style>
 </head>
 <body>
@@ -313,6 +351,15 @@
         <div style="font-size:9px;opacity:.6;margin-top:2px;">UNLIMITED</div>
         <div class="hud-title" style="margin-top:8px;">Mode</div>
         <div id="mode-line">Flight</div>
+        <div id="hp-block">
+          <div class="hud-title">Hull</div>
+          <div id="hp-bar-track"><div class="bar-fill" id="hp-bar-fill" style="width:100%"></div></div>
+        </div>
+        <div id="res-block">
+          <div class="res-item">⚙️<span id="res-iron">0</span></div>
+          <div class="res-item">💎<span id="res-crystal">0</span></div>
+          <div class="res-item">🔮<span id="res-plasma">0</span></div>
+        </div>
       </div>
     </div>
     <div class="hud-block" id="planet-name-box">
@@ -328,6 +375,7 @@
   <div id="chat-feed"></div>
 
   <button id="chat-btn" class="icon-btn" style="position:absolute;top:12px;right:216px;z-index:20;font-size:15px;">💬</button>
+  <button id="shipyard-btn" class="icon-btn">🛠</button>
   <button id="log-btn" class="icon-btn">📜</button>
   <div id="log-panel"><div class="hud-title">Discovery Log</div><div id="log-list"></div></div>
 
@@ -384,6 +432,46 @@
     </div>
   </div>
 
+  <!-- Shipyard / ship upgrade panel -->
+  <div id="shipyard-panel">
+    <div id="shipyard-header">
+      <h2>SHIPYARD</h2>
+      <button id="shipyard-close" class="icon-btn">✕</button>
+    </div>
+
+    <div class="sy-section">
+      <div class="hud-title" style="margin-bottom:6px;">Cargo Hold</div>
+      <div class="sy-res-row">
+        <div class="res-item">⚙️ <span id="sy-res-iron">0</span> Iron</div>
+        <div class="res-item">💎 <span id="sy-res-crystal">0</span> Crystal</div>
+        <div class="res-item">🔮 <span id="sy-res-plasma">0</span> Plasma</div>
+      </div>
+      <div class="loc-sub" style="margin-top:6px;">Land on planets to gather resources.</div>
+    </div>
+
+    <div class="sy-section">
+      <div class="hud-title" style="margin-bottom:6px;">Hull Class</div>
+      <div id="sy-hull-list"></div>
+    </div>
+
+    <div class="sy-section">
+      <div class="hud-title" style="margin-bottom:6px;">Hull Size</div>
+      <div id="sy-size-list"></div>
+    </div>
+
+    <div class="sy-section">
+      <div class="hud-title" style="margin-bottom:6px;">Weapon Systems</div>
+      <div id="sy-weapon-list"></div>
+    </div>
+  </div>
+
+  <!-- Respawn overlay -->
+  <div id="respawn-overlay">
+    <h2>SHIP DESTROYED</h2>
+    <div class="rs-sub" id="respawn-killer">-</div>
+    <div class="rs-sub">Respawning...</div>
+  </div>
+
   <div id="hint">Drag with your finger to steer the ship • use the throttle for speed • the LAND button appears when near a planet</div>
 
   <!-- Space controls -->
@@ -395,7 +483,10 @@
     </div>
     <button id="boost-btn">BOOST</button>
     <button id="land-btn">⬇ LAND</button>
+    <button id="fire-btn">🎯</button>
   </div>
+  <div id="kill-feed"></div>
+  <div id="damage-flash"></div>
 
   <!-- Surface controls -->
   <div id="surface-controls">
@@ -539,7 +630,33 @@ const state = {
   discovered: {},
   currentPlanet: null,
   spacePos: new THREE.Vector3(0,0,0),
+  hp: 100,
+  maxHp: 100,
+  invulnerable: 0,
+  ship: { hullType: 0, size: 1, weaponTier: 1 },
+  resources: { iron: 0, crystal: 0, plasma: 0 },
 };
+
+// load persisted ship build + cargo hold, if any
+try{
+  const savedShip = JSON.parse(localStorage.getItem('infinity-ship')||'null');
+  if(savedShip && typeof savedShip==='object'){
+    state.ship.hullType = savedShip.hullType|0;
+    state.ship.size = savedShip.size || 1;
+    state.ship.weaponTier = savedShip.weaponTier || 1;
+    if(Array.isArray(savedShip.ownedHulls)) state.ship.ownedHulls = savedShip.ownedHulls;
+    if(Array.isArray(savedShip.ownedSizes)) state.ship.ownedSizes = savedShip.ownedSizes;
+    if(Array.isArray(savedShip.ownedWeapons)) state.ship.ownedWeapons = savedShip.ownedWeapons;
+  }
+  const savedRes = JSON.parse(localStorage.getItem('infinity-resources')||'null');
+  if(savedRes && typeof savedRes==='object'){
+    state.resources.iron = savedRes.iron||0;
+    state.resources.crystal = savedRes.crystal||0;
+    state.resources.plasma = savedRes.plasma||0;
+  }
+}catch(e){ console.warn('Could not load saved ship/resources:', e); }
+function saveShip(){ try{ localStorage.setItem('infinity-ship', JSON.stringify(state.ship)); }catch(e){} }
+function saveResources(){ try{ localStorage.setItem('infinity-resources', JSON.stringify(state.resources)); }catch(e){} }
 
 const GFX = {
   low:    { floraPerChunk: 5,  creaturesPerChunk: 1.1, structPerChunk: 1.3, particles: 800,  segs: 24 },
@@ -609,21 +726,70 @@ spaceScene.add(spaceSun);
 /* =====================================================================
    SHIP
 ===================================================================== */
+/* Builds the mesh parts for one of four hull classes. Used both for the
+   player's own ship and (with a different color) for other players'
+   ghost ships, so everyone's chosen hull/size is visible to everyone. */
+function buildHullParts(hullType, color){
+  const mat = new THREE.MeshStandardMaterial({color, metalness:0.6, roughness:0.35, emissive:0x0a2530, emissiveIntensity:0.4});
+  const wingMat = new THREE.MeshStandardMaterial({color:0x223344, metalness:0.5, roughness:0.5});
+  const parts = [];
+  let engineOffsets = [[-1.4,0,1.1],[1.4,0,1.1]];
+  if(hullType===1){ // Interceptor: slim elongated hull, swept-back wings — built for speed
+    const hullGeo = new THREE.ConeGeometry(0.6,4.2,8); hullGeo.rotateX(Math.PI/2);
+    parts.push(new THREE.Mesh(hullGeo, mat));
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(4.6,0.1,0.7), wingMat);
+    wing.position.z=0.9; wing.rotation.y=0.15;
+    parts.push(wing);
+    engineOffsets = [[-1.0,0,1.9],[1.0,0,1.9]];
+  } else if(hullType===2){ // Cruiser: boxy armored hull, wide wings — tankier
+    parts.push(new THREE.Mesh(new THREE.BoxGeometry(1.6,1.0,3.6), mat));
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(4.6,0.16,1.6), wingMat);
+    wing.position.z=0.5;
+    parts.push(wing);
+    engineOffsets = [[-1.8,0,1.5],[1.8,0,1.5]];
+  } else if(hullType===3){ // Stealth: flat diamond hull, small wings — sleek and low-profile
+    const hull = new THREE.Mesh(new THREE.OctahedronGeometry(1.3,0), mat);
+    hull.scale.set(0.75,0.32,1.6);
+    parts.push(hull);
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(2.6,0.08,0.8), wingMat);
+    wing.position.z=0.3;
+    parts.push(wing);
+    engineOffsets = [[-0.8,0,1.0],[0.8,0,1.0]];
+  } else { // 0: Fighter — balanced starter hull
+    const hullGeo = new THREE.ConeGeometry(0.9,3.2,8); hullGeo.rotateX(Math.PI/2);
+    parts.push(new THREE.Mesh(hullGeo, mat));
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(3.4,0.12,1.0), wingMat);
+    wing.position.z=0.4;
+    parts.push(wing);
+  }
+  const engineGlowGeo = new THREE.SphereGeometry(0.28,8,8);
+  const engines = engineOffsets.map(([x,y,z])=>{
+    const e = new THREE.Mesh(engineGlowGeo, new THREE.MeshBasicMaterial({color}));
+    e.position.set(x,y,z);
+    parts.push(e);
+    return e;
+  });
+  return {parts, mat, engines};
+}
+
 const ship = new THREE.Group();
-const shipMat = new THREE.MeshStandardMaterial({color: state.shipColor, metalness:0.6, roughness:0.35, emissive:0x0a2530, emissiveIntensity:0.4});
-const hullGeo = new THREE.ConeGeometry(0.9, 3.2, 8);
-hullGeo.rotateX(Math.PI/2);
-const hull = new THREE.Mesh(hullGeo, shipMat);
-ship.add(hull);
-const wingGeo = new THREE.BoxGeometry(3.4, 0.12, 1.0);
-const wingMat = new THREE.MeshStandardMaterial({color:0x223344, metalness:0.5, roughness:0.5});
-const wing = new THREE.Mesh(wingGeo, wingMat);
-wing.position.z = 0.4;
-ship.add(wing);
-const engineGlowGeo = new THREE.SphereGeometry(0.28,8,8);
-const engineGlowMat = new THREE.MeshBasicMaterial({color:0x5ee7ff});
-const engineL = new THREE.Mesh(engineGlowGeo, engineGlowMat); engineL.position.set(-1.4,0,1.1); ship.add(engineL);
-const engineR = engineL.clone(); engineR.position.x = 1.4; ship.add(engineR);
+let shipMat, engineL, engineR;
+let ownShipBubbleRef = null; // reattached across rebuilds (see MP section below, where it's first created)
+function rebuildShip(){
+  while(ship.children.length){
+    const c = ship.children[0];
+    ship.remove(c);
+    if(c.geometry) c.geometry.dispose();
+    if(c.material) c.material.dispose();
+  }
+  const {parts, mat, engines} = buildHullParts(state.ship.hullType, state.shipColor);
+  parts.forEach(p=>ship.add(p));
+  shipMat = mat;
+  engineL = engines[0]; engineR = engines[1];
+  ship.scale.setScalar(state.ship.size);
+  if(ownShipBubbleRef) ship.add(ownShipBubbleRef);
+}
+rebuildShip();
 ship.position.set(0,0,0);
 spaceScene.add(ship);
 
@@ -1000,6 +1166,7 @@ function landOnPlanet(data){
     playerVelY=0;
 
     updateSurfaceChunks(true);
+    collectResourcesFromPlanet(data);
   }catch(e){
     console.error('Critical landOnPlanet error:', e);
     // Fallback: at least add basic flat terrain so the player isn't stuck in a black void
@@ -2335,6 +2502,38 @@ document.getElementById('log-btn').addEventListener('click', ()=>{
   document.getElementById('log-panel').classList.toggle('show');
 });
 
+/* Landing on a planet always nets some cargo — bigger, higher-gravity
+   worlds tend to be richer in iron, while planets with exotic
+   atmospheres skew toward crystal/plasma. Amounts are randomized each
+   visit (revisiting a planet still pays out), so scanning your way
+   across the universe is a viable way to fund ship upgrades. */
+function updateResourceUI(){
+  const i = document.getElementById('res-iron'), c = document.getElementById('res-crystal'), p = document.getElementById('res-plasma');
+  if(i) i.textContent = state.resources.iron;
+  if(c) c.textContent = state.resources.crystal;
+  if(p) p.textContent = state.resources.plasma;
+}
+updateResourceUI();
+
+function collectResourcesFromPlanet(data){
+  try{
+    const richness = 0.6 + (data.radius/130)*0.8; // bigger planets pay out more
+    const iron = Math.round((8 + Math.random()*22) * richness * (0.6+data.gravity/18));
+    const crystal = Math.round((3 + Math.random()*14) * richness);
+    const plasma = Math.round((0 + Math.random()*8) * richness * (data.hasRings?1.6:1));
+    state.resources.iron += iron;
+    state.resources.crystal += crystal;
+    state.resources.plasma += plasma;
+    saveResources();
+    updateResourceUI();
+    const parts = [];
+    if(iron>0) parts.push('+'+iron+' Iron');
+    if(crystal>0) parts.push('+'+crystal+' Crystal');
+    if(plasma>0) parts.push('+'+plasma+' Plasma');
+    if(parts.length) pushFeedMessage('⛏ '+parts.join(' · '), 'kill-feed-loot');
+  }catch(e){ console.warn('collectResourcesFromPlanet error:', e); }
+}
+
 /* =====================================================================
    SETTINGS PANEL
 ===================================================================== */
@@ -2571,6 +2770,18 @@ const MP = (function(){
   const myId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('p-'+Math.random().toString(36).slice(2)+Date.now());
   let myName = (localStorage.getItem('infinity-name')||'').trim() || ('Explorer-'+Math.floor(1000+Math.random()*9000));
   let myColor = (typeof state!=='undefined' && typeof state.shipColor==='number') ? state.shipColor : 0x5ee7ff;
+  let myHullType = (typeof state!=='undefined' && state.ship) ? state.ship.hullType : 0;
+  let mySize = (typeof state!=='undefined' && state.ship) ? state.ship.size : 1;
+  const WEAPON_TIERS = {
+    1: {damage:12, cooldown:450, speed:140},
+    2: {damage:18, cooldown:380, speed:160},
+    3: {damage:26, cooldown:320, speed:190},
+  };
+  const HIT_RADIUS = 2.4;
+  const PROJECTILE_LIFE = 1600; // ms
+  let myProjectiles = [];    // {mesh, vel, bornAt}
+  let remoteProjectiles = []; // {mesh, vel, bornAt} — visual only, from other players
+  let lastFireAt = 0;
 
   const ghosts = new Map();   // id -> {ship:{group,tag}, avatar:{group,tag}, target:{pos,quat}, mode, planetKey}
   let lastBroadcast = 0;
@@ -2662,21 +2873,21 @@ const MP = (function(){
     myAvatarBubbleHolder.bubble = avatarBubble;
   }
 
-  function makeGhostShip(name, color){
+  function makeGhostShip(name, color, hullType, size){
     const group = new THREE.Group();
     const col = (typeof color==='number') ? color : 0xff8a5e;
-    const mat = new THREE.MeshStandardMaterial({color:col, metalness:0.6, roughness:0.35, emissive:new THREE.Color(col).multiplyScalar(0.35), emissiveIntensity:0.4});
-    const hg = new THREE.ConeGeometry(0.9,3.2,8); hg.rotateX(Math.PI/2);
-    group.add(new THREE.Mesh(hg, mat));
-    const wing = new THREE.Mesh(new THREE.BoxGeometry(3.4,0.12,1.0), new THREE.MeshStandardMaterial({color:0x332211,metalness:0.5,roughness:0.5}));
-    wing.position.z = 0.4; group.add(wing);
+    const hullGroup = new THREE.Group();
+    const {parts, mat} = buildHullParts(hullType||0, col);
+    parts.forEach(p=>hullGroup.add(p));
+    hullGroup.scale.setScalar(size||1);
+    group.add(hullGroup);
     const tag = makeNameSprite(name);
     group.add(tag);
     const bubble = makeChatBubble();
     group.add(bubble);
     group.visible = false;
     spaceScene.add(group);
-    return {group, tag, bubble, mat};
+    return {group, hullGroup, tag, bubble, mat, hullType: hullType||0, size: size||1};
   }
 
   function makeGhostAvatar(name){
@@ -2734,16 +2945,19 @@ const MP = (function(){
         const meta = (st[id] && st[id][0]) || {};
         const name = meta.name || 'Explorer';
         const color = (typeof meta.color==='number') ? meta.color : 0xff8a5e;
+        const hullType = (typeof meta.hullType==='number') ? meta.hullType : 0;
+        const size = (typeof meta.size==='number') ? meta.size : 1;
         if(!ghosts.has(id)){
           ghosts.set(id, {
-            name, color,
-            ship: makeGhostShip(name, color),
+            name, color, hullType, size,
+            ship: makeGhostShip(name, color, hullType, size),
             avatar: makeGhostAvatar(name),
             target:{pos:new THREE.Vector3(), quat:new THREE.Quaternion()},
             mode:'space', planetKey:null
           });
         } else {
-          // update name / ship color live, in case the player renamed or repainted mid-session
+          // update name / ship color / ship build live, in case the player
+          // renamed, repainted, or upgraded their ship mid-session
           const g = ghosts.get(id);
           if(g.name !== name){
             g.name = name;
@@ -2754,6 +2968,19 @@ const MP = (function(){
             g.color = color;
             g.ship.mat.color.set(color);
             g.ship.mat.emissive.set(color).multiplyScalar(0.35);
+          }
+          if(g.hullType !== hullType || g.size !== size){
+            g.hullType = hullType; g.size = size;
+            while(g.ship.hullGroup.children.length){
+              const c = g.ship.hullGroup.children[0];
+              g.ship.hullGroup.remove(c);
+              if(c.geometry) c.geometry.dispose();
+              if(c.material) c.material.dispose();
+            }
+            const {parts, mat} = buildHullParts(hullType, color);
+            parts.forEach(p=>g.ship.hullGroup.add(p));
+            g.ship.hullGroup.scale.setScalar(size);
+            g.ship.mat = mat;
           }
         }
       });
@@ -2777,25 +3004,110 @@ const MP = (function(){
       addChatMessage(payload.name||'Explorer', payload.text||'', false);
       showBubble(payload.id, payload.text||'');
     });
-    channel.subscribe(async status=>{
-      if(status==='SUBSCRIBED') await channel.track({name: myName, color: myColor});
+    channel.on('broadcast', {event:'shoot'}, ({payload})=>{
+      if(!payload || payload.id===myId) return; // visual copy of another player's shot
+      spawnProjectileMesh(remoteProjectiles, payload.x, payload.y, payload.z, payload.dx, payload.dy, payload.dz, payload.color, payload.speed);
     });
-  }
-
-  function updateCountUI(){
-    const el = document.getElementById('mp-count');
-    if(el) el.textContent = (ghosts.size+1) + ' online';
+    channel.on('broadcast', {event:'hit'}, ({payload})=>{
+      if(!payload || payload.targetId!==myId) return;
+      if(typeof applyIncomingDamage==='function') applyIncomingDamage(payload.damage, payload.shooterName);
+    });
+    channel.on('broadcast', {event:'kill'}, ({payload})=>{
+      if(!payload) return;
+      if(typeof pushKillFeed==='function') pushKillFeed(payload.victim, payload.killer);
+    });
+    channel.subscribe(async status=>{
+      if(status==='SUBSCRIBED') await channel.track({name: myName, color: myColor, hullType: myHullType, size: mySize});
+    });
   }
 
   function setName(n){
     myName = n.slice(0,16) || myName;
     localStorage.setItem('infinity-name', myName);
-    if(channel) channel.track({name: myName, color: myColor});
+    if(channel) channel.track({name: myName, color: myColor, hullType: myHullType, size: mySize});
   }
 
   function setColor(hexNum){
     myColor = hexNum;
-    if(channel) channel.track({name: myName, color: myColor});
+    if(channel) channel.track({name: myName, color: myColor, hullType: myHullType, size: mySize});
+  }
+
+  function setShip(hullType, size){
+    myHullType = hullType; mySize = size;
+    if(channel) channel.track({name: myName, color: myColor, hullType: myHullType, size: mySize});
+  }
+
+  function sendKill(victim, killer){
+    safeSend({type:'broadcast', event:'kill', payload:{victim, killer}});
+  }
+
+  /* ---------------- weapons ---------------- */
+  function spawnProjectileMesh(list, x,y,z, dx,dy,dz, color, speed){
+    const geo = new THREE.CylinderGeometry(0.06,0.06,0.9,5);
+    geo.rotateX(Math.PI/2);
+    const mat = new THREE.MeshBasicMaterial({color: (typeof color==='number')?color:0x5ee7ff});
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x,y,z);
+    const dir = new THREE.Vector3(dx,dy,dz).normalize();
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,-1), dir);
+    spaceScene.add(mesh);
+    list.push({mesh, vel:dir.multiplyScalar(speed||150), bornAt: performance.now()});
+  }
+
+  function fireWeapon(){
+    if(typeof state==='undefined' || state.mode!=='space') return;
+    const now = performance.now();
+    const tier = WEAPON_TIERS[state.ship.weaponTier] || WEAPON_TIERS[1];
+    if(now - lastFireAt < tier.cooldown) return;
+    lastFireAt = now;
+    const nosePos = ship.position.clone().addScaledVector(forward, 2.2*state.ship.size);
+    spawnProjectileMesh(myProjectiles, nosePos.x, nosePos.y, nosePos.z, forward.x, forward.y, forward.z, state.shipColor, tier.speed);
+    safeSend({type:'broadcast', event:'shoot', payload:{
+      id:myId, x:nosePos.x, y:nosePos.y, z:nosePos.z,
+      dx:forward.x, dy:forward.y, dz:forward.z, color: state.shipColor, speed: tier.speed
+    }});
+  }
+
+  function updateProjectiles(dt){
+    const now = performance.now();
+    const tier = WEAPON_TIERS[state.ship.weaponTier] || WEAPON_TIERS[1];
+
+    for(let i=myProjectiles.length-1;i>=0;i--){
+      const p = myProjectiles[i];
+      p.mesh.position.addScaledVector(p.vel, dt);
+      if(now - p.bornAt > PROJECTILE_LIFE){
+        spaceScene.remove(p.mesh); p.mesh.geometry.dispose(); p.mesh.material.dispose();
+        myProjectiles.splice(i,1);
+        continue;
+      }
+      // shooter-authoritative hit check against every visible ghost ship in space
+      let hit = false;
+      ghosts.forEach((g,id)=>{
+        if(hit || g.mode!=='space' || !g.ship.group.visible) return;
+        if(p.mesh.position.distanceTo(g.ship.group.position) < HIT_RADIUS*(g.size||1)){
+          hit = true;
+          safeSend({type:'broadcast', event:'hit', payload:{targetId:id, damage:tier.damage, shooterName:myName}});
+        }
+      });
+      if(hit){
+        spaceScene.remove(p.mesh); p.mesh.geometry.dispose(); p.mesh.material.dispose();
+        myProjectiles.splice(i,1);
+      }
+    }
+
+    for(let i=remoteProjectiles.length-1;i>=0;i--){
+      const p = remoteProjectiles[i];
+      p.mesh.position.addScaledVector(p.vel, dt);
+      if(now - p.bornAt > PROJECTILE_LIFE){
+        spaceScene.remove(p.mesh); p.mesh.geometry.dispose(); p.mesh.material.dispose();
+        remoteProjectiles.splice(i,1);
+      }
+    }
+  }
+
+  function updateCountUI(){
+    const el = document.getElementById('mp-count');
+    if(el) el.textContent = (ghosts.size+1) + ' online';
   }
 
   function fadeBubble(obj){
@@ -2861,10 +3173,12 @@ const MP = (function(){
         active.group.visible = false;
       }
     });
+
+    updateProjectiles(dt);
   }
 
   return { 
-    updateLocal, setName, setColor, sendChat, attachOwnBubbles, createBubble: makeChatBubble,
+    updateLocal, setName, setColor, setShip, sendChat, sendKill, fireWeapon, attachOwnBubbles, createBubble: makeChatBubble,
     get myName(){return myName;},
     get myId(){return myId;},
     get ghosts(){return ghosts;}
@@ -2875,10 +3189,102 @@ const MP = (function(){
    also float above us (not just other players' ghosts). */
 const ownShipBubble = MP.createBubble();
 ship.add(ownShipBubble);
+ownShipBubbleRef = ownShipBubble; // so rebuildShip() can reattach it after a hull upgrade
 const ownAvatarBubble = MP.createBubble();
 ownAvatarBubble.position.y = 2.9;
 player.add(ownAvatarBubble);
 MP.attachOwnBubbles(ownShipBubble, ownAvatarBubble);
+
+/* =====================================================================
+   COMBAT : health, damage, respawn, kill feed
+===================================================================== */
+function updateHpUI(){
+  const pct = Math.max(0, Math.min(100, (state.hp/state.maxHp)*100));
+  const fill = document.getElementById('hp-bar-fill');
+  if(!fill) return;
+  fill.style.width = pct+'%';
+  fill.classList.remove('hp-mid','hp-low');
+  if(pct <= 25) fill.classList.add('hp-low');
+  else if(pct <= 55) fill.classList.add('hp-mid');
+}
+updateHpUI();
+
+function flashDamage(){
+  const el = document.getElementById('damage-flash');
+  if(!el) return;
+  el.classList.add('hit');
+  setTimeout(()=>el.classList.remove('hit'), 220);
+}
+
+function pushFeedMessage(text, extraClass){
+  const feed = document.getElementById('kill-feed');
+  if(!feed) return;
+  const div = document.createElement('div');
+  div.className = 'kill-feed-msg' + (extraClass ? ' '+extraClass : '');
+  div.textContent = text;
+  feed.appendChild(div);
+  requestAnimationFrame(()=>div.classList.add('show'));
+  setTimeout(()=>{
+    div.classList.remove('show');
+    setTimeout(()=>div.remove(), 350);
+  }, 3800);
+  // keep at most 4 messages on screen at once
+  while(feed.children.length > 4) feed.removeChild(feed.firstChild);
+}
+function pushKillFeed(victim, killer){
+  pushFeedMessage((victim||'Someone') + ' was destroyed by ' + (killer||'the void'));
+}
+
+function applyIncomingDamage(damage, shooterName){
+  if(state.mode!=='space') return; // combat only resolves while flying
+  if(state.invulnerable && performance.now() < state.invulnerable) return;
+  state.hp = Math.max(0, state.hp - damage);
+  updateHpUI();
+  flashDamage();
+  if(navigator.vibrate) navigator.vibrate(40);
+  if(state.hp<=0) handleDestroyed(shooterName);
+}
+
+function handleDestroyed(shooterName){
+  const killerEl = document.getElementById('respawn-killer');
+  if(killerEl) killerEl.textContent = shooterName ? ('Destroyed by '+shooterName) : 'Ship destroyed';
+  const overlay = document.getElementById('respawn-overlay');
+  if(overlay) overlay.classList.add('show');
+  pushKillFeed(MP.myName, shooterName);
+  if(MP.sendKill) MP.sendKill(MP.myName, shooterName||'the void');
+  setTimeout(()=>{
+    respawnShip();
+    if(overlay) overlay.classList.remove('show');
+  }, 2200);
+}
+
+function respawnShip(){
+  ship.position.set((Math.random()-0.5)*40, (Math.random()-0.5)*20, (Math.random()-0.5)*40);
+  state.hp = state.maxHp;
+  state.invulnerable = performance.now() + 3000;
+  updateHpUI();
+}
+
+/* fire button — hold to keep firing, weapon cooldown paces the actual rate */
+let fireHoldInterval = null;
+function startFire(){
+  if(typeof MP==='undefined' || !MP.fireWeapon) return;
+  MP.fireWeapon();
+  if(fireHoldInterval) clearInterval(fireHoldInterval);
+  fireHoldInterval = setInterval(()=>MP.fireWeapon(), 90);
+}
+function stopFire(){
+  if(fireHoldInterval){ clearInterval(fireHoldInterval); fireHoldInterval=null; }
+}
+const fireBtn = document.getElementById('fire-btn');
+if(fireBtn){
+  fireBtn.addEventListener('touchstart', e=>{ e.preventDefault(); startFire(); }, {passive:false});
+  fireBtn.addEventListener('touchend', stopFire);
+  fireBtn.addEventListener('touchcancel', stopFire);
+  fireBtn.addEventListener('mousedown', startFire);
+  fireBtn.addEventListener('mouseup', stopFire);
+  fireBtn.addEventListener('mouseleave', stopFire);
+}
 
 /* =====================================================================
    RADAR SYSTEM
@@ -3095,6 +3501,120 @@ function pushChatFeed(name, text, isMe){
     setTimeout(()=>{ if(div.parentNode) div.parentNode.removeChild(div); }, 400);
   }, 6000);
 }
+
+/* =====================================================================
+   SHIPYARD : hull / size / weapon upgrades, paid for with mined resources
+===================================================================== */
+const HULL_DEFS = [
+  {id:0, name:'Fighter', desc:'Balanced starter hull.', cost:{iron:0,crystal:0,plasma:0}},
+  {id:1, name:'Interceptor', desc:'Slim, swept wings — built for speed.', cost:{iron:80,crystal:30,plasma:0}},
+  {id:2, name:'Cruiser', desc:'Boxy and armored, wide wings.', cost:{iron:140,crystal:20,plasma:10}},
+  {id:3, name:'Stealth', desc:'Flat diamond hull, low profile.', cost:{iron:60,crystal:70,plasma:20}},
+];
+const SIZE_DEFS = [
+  {size:1, name:'Standard', desc:'Default hull size.', cost:{iron:0,crystal:0,plasma:0}},
+  {size:1.3, name:'Large', desc:'Bigger silhouette, easier to hit.', cost:{iron:100,crystal:40,plasma:0}},
+  {size:1.7, name:'Massive', desc:'Imposing — and a bigger target.', cost:{iron:220,crystal:90,plasma:30}},
+];
+const WEAPON_DEFS = [
+  {tier:1, name:'Mk.I Laser', desc:'12 dmg · standard fire rate', cost:{iron:0,crystal:0,plasma:0}},
+  {tier:2, name:'Mk.II Laser', desc:'18 dmg · faster fire rate', cost:{iron:120,crystal:60,plasma:20}},
+  {tier:3, name:'Mk.III Laser', desc:'26 dmg · rapid fire', cost:{iron:260,crystal:140,plasma:70}},
+];
+
+if(!state.ship.ownedHulls) state.ship.ownedHulls = [0];
+if(!state.ship.ownedSizes) state.ship.ownedSizes = [1];
+if(!state.ship.ownedWeapons) state.ship.ownedWeapons = [1];
+if(!state.ship.ownedHulls.includes(state.ship.hullType)) state.ship.ownedHulls.push(state.ship.hullType);
+if(!state.ship.ownedSizes.includes(state.ship.size)) state.ship.ownedSizes.push(state.ship.size);
+if(!state.ship.ownedWeapons.includes(state.ship.weaponTier)) state.ship.ownedWeapons.push(state.ship.weaponTier);
+
+function costText(cost){
+  const bits = [];
+  if(cost.iron) bits.push('⚙️'+cost.iron);
+  if(cost.crystal) bits.push('💎'+cost.crystal);
+  if(cost.plasma) bits.push('🔮'+cost.plasma);
+  return bits.length ? bits.join(' ') : 'Free';
+}
+function canAfford(cost){
+  return state.resources.iron>=cost.iron && state.resources.crystal>=cost.crystal && state.resources.plasma>=cost.plasma;
+}
+function spend(cost){
+  state.resources.iron -= cost.iron;
+  state.resources.crystal -= cost.crystal;
+  state.resources.plasma -= cost.plasma;
+  saveResources();
+  updateResourceUI();
+}
+
+function openShipyard(){
+  populateShipyard();
+  document.getElementById('shipyard-panel').classList.add('show');
+}
+function closeShipyard(){
+  document.getElementById('shipyard-panel').classList.remove('show');
+}
+
+function renderShipyardSection(containerId, defs, ownedList, ownedKey, equippedValue, onEquip){
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  defs.forEach(def=>{
+    const key = def[ownedKey];
+    const owned = ownedList.includes(key);
+    const equipped = equippedValue === key;
+    const card = document.createElement('div');
+    card.className = 'sy-card';
+    const afford = canAfford(def.cost);
+    const btnLabel = equipped ? 'EQUIPPED' : (owned ? 'EQUIP' : 'BUY');
+    card.innerHTML =
+      '<div class="sy-card-info">'+
+        '<div class="sy-card-title">'+def.name+'</div>'+
+        '<div class="sy-card-desc">'+def.desc+'</div>'+
+        '<div class="sy-card-cost">'+(owned?'Owned':costText(def.cost))+'</div>'+
+      '</div>';
+    const btn = document.createElement('button');
+    btn.className = 'sy-buy-btn' + (equipped ? ' active' : '');
+    btn.textContent = btnLabel;
+    btn.disabled = equipped || (!owned && !afford);
+    btn.addEventListener('click', ()=>{
+      if(!owned){
+        if(!canAfford(def.cost)) return;
+        spend(def.cost);
+        ownedList.push(key);
+      }
+      onEquip(key);
+      saveShip();
+      populateShipyard();
+    });
+    card.appendChild(btn);
+    el.appendChild(card);
+  });
+}
+
+function populateShipyard(){
+  document.getElementById('sy-res-iron').textContent = state.resources.iron;
+  document.getElementById('sy-res-crystal').textContent = state.resources.crystal;
+  document.getElementById('sy-res-plasma').textContent = state.resources.plasma;
+
+  renderShipyardSection('sy-hull-list', HULL_DEFS, state.ship.ownedHulls, 'id', state.ship.hullType, id=>{
+    state.ship.hullType = id;
+    rebuildShip();
+    if(MP.setShip) MP.setShip(state.ship.hullType, state.ship.size);
+  });
+  renderShipyardSection('sy-size-list', SIZE_DEFS, state.ship.ownedSizes, 'size', state.ship.size, size=>{
+    state.ship.size = size;
+    rebuildShip();
+    if(MP.setShip) MP.setShip(state.ship.hullType, state.ship.size);
+  });
+  renderShipyardSection('sy-weapon-list', WEAPON_DEFS, state.ship.ownedWeapons, 'tier', state.ship.weaponTier, tier=>{
+    state.ship.weaponTier = tier;
+  });
+}
+
+const shipyardBtn = document.getElementById('shipyard-btn');
+if(shipyardBtn) shipyardBtn.addEventListener('click', openShipyard);
+const shipyardClose = document.getElementById('shipyard-close');
+if(shipyardClose) shipyardClose.addEventListener('click', closeShipyard);
 
 /* =====================================================================
    UNIVERSE MAP + TELEPORT PANEL
